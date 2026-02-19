@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrontAl - Frontend Performance & Bundle Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>FrontAl</h1>
+                <p class="subtitle">Frontend Performance & Bundle Analyzer</p>
+            </div>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="input-modes">
+                    <button class="mode-btn active" data-mode="upload">📁 Upload Files</button>
+                    <button class="mode-btn" data-mode="paste">📝 Paste Code</button>
+                </div>
+
+                <div class="input-area upload-mode">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            <p class="drop-text">Drag & drop files here</p>
+                            <p class="drop-subtext">or click to browse</p>
+                            <input type="file" id="fileInput" multiple accept=".html,.css,.js,.htm">
+                        </div>
+                        <div class="file-list" id="fileList"></div>
+                    </div>
+                </div>
+
+                <div class="input-area paste-mode hidden">
+                    <div class="paste-container">
+                        <div class="code-input-group">
+                            <label for="htmlInput">
+                                <span class="file-type-badge html">HTML</span>
+                            </label>
+                            <textarea id="htmlInput" placeholder="Paste your HTML code here..."></textarea>
+                        </div>
+                        <div class="code-input-group">
+                            <label for="cssInput">
+                                <span class="file-type-badge css">CSS</span>
+                            </label>
+                            <textarea id="cssInput" placeholder="Paste your CSS code here..."></textarea>
+                        </div>
+                        <div class="code-input-group">
+                            <label for="jsInput">
+                                <span class="file-type-badge js">JavaScript</span>
+                            </label>
+                            <textarea id="jsInput" placeholder="Paste your JavaScript code here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="analyze-btn" id="analyzeBtn">
+                    <span class="btn-text">Analyze Code</span>
+                    <span class="btn-icon">🔍</span>
+                </button>
+            </section>
+
+            <section class="results-section hidden" id="resultsSection">
+                <div class="results-header">
+                    <h2>Analysis Results</h2>
+                    <div class="overall-score" id="overallScore">
+                        <div class="score-circle">
+                            <span class="score-value">--</span>
+                        </div>
+                        <span class="score-label">Performance Score</span>
+                    </div>
+                </div>
+
+                <div class="results-grid">
+                    <div class="result-card">
+                        <h3>📦 Bundle Size & Composition</h3>
+                        <div id="sizeResults" class="result-content"></div>
+                    </div>
+
+                    <div class="result-card">
+                        <h3>🔄 Duplication Analysis</h3>
+                        <div id="duplicationResults" class="result-content"></div>
+                    </div>
+
+                    <div class="result-card">
+                        <h3>⚡ Performance Issues</h3>
+                        <div id="performanceResults" class="result-content"></div>
+                    </div>
+
+                    <div class="result-card">
+                        <h3>💡 Recommendations</h3>
+                        <div id="recommendationsResults" class="result-content"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer></footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
