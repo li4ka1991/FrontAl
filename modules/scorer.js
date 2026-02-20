@@ -3,7 +3,7 @@
  * Calculates overall performance score based on analysis results
  */
 
-export function calculateScore(sizeResults, duplicationResults, performanceResults) {
+function calculateScore(sizeResults, duplicationResults, performanceResults) {
     let score = 100;
     const details = {
         sizeScore: 100,

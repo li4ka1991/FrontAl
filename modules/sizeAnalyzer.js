@@ -3,7 +3,7 @@
  * Analyzes file sizes, bundle composition, and provides size-related metrics
  */
 
-export function analyzeSizes(files) {
+function analyzeSizes(files) {
     const results = {
         totalSize: 0,
         fileSizes: {},

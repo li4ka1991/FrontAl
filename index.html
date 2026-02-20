@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FrontAl - Frontend Performance & Bundle Analyzer</title>
     <link rel="stylesheet" href="styles.css">
+    
 </head>
 <body>
     <div class="container">
@@ -17,26 +18,7 @@
 
         <main>
             <section class="input-section">
-                <div class="input-modes">
-                    <button class="mode-btn active" data-mode="upload">📁 Upload Files</button>
-                    <button class="mode-btn" data-mode="paste">📝 Paste Code</button>
-                </div>
-
-                <div class="input-area upload-mode">
-                    <div class="drop-zone" id="dropZone">
-                        <div class="drop-zone-content">
-                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                            </svg>
-                            <p class="drop-text">Drag & drop files here</p>
-                            <p class="drop-subtext">or click to browse</p>
-                            <input type="file" id="fileInput" multiple accept=".html,.css,.js,.htm">
-                        </div>
-                        <div class="file-list" id="fileList"></div>
-                    </div>
-                </div>
-
-                <div class="input-area paste-mode hidden">
+                <div class="input-area paste-mode">
                     <div class="paste-container">
                         <div class="code-input-group">
                             <label for="htmlInput">
@@ -57,6 +39,25 @@
                             <textarea id="jsInput" placeholder="Paste your JavaScript code here..."></textarea>
                         </div>
                     </div>
+                    
+                    <div class="file-upload-toggle">
+                        <button class="toggle-upload-btn" id="toggleUploadBtn">📁 Or upload files instead</button>
+                    </div>
+                </div>
+
+                <div class="input-area upload-mode hidden">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            <p class="drop-text">Drag & drop files here</p>
+                            <p class="drop-subtext">or click to browse</p>
+                            <input type="file" id="fileInput" multiple accept=".html,.css,.js,.htm">
+                        </div>
+                        <div class="file-list" id="fileList"></div>
+                    </div>
+                    <div class="center-positioner"><button class="toggle-upload-btn" id="togglePasteBtn" style="margin-top: 1rem;">📝 Back to paste mode</button></div>
                 </div>
 
                 <button class="analyze-btn" id="analyzeBtn">
@@ -103,6 +104,10 @@
         <footer></footer>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script src="modules/sizeAnalyzer.js"></script>
+    <script src="modules/duplicationDetector.js"></script>
+    <script src="modules/performanceAnalyzer.js"></script>
+    <script src="modules/scorer.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

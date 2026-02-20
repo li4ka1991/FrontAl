@@ -3,14 +3,9 @@
  * Main application logic
  */
 
-import { analyzeSizes } from './modules/sizeAnalyzer.js';
-import { detectDuplication } from './modules/duplicationDetector.js';
-import { analyzePerformance } from './modules/performanceAnalyzer.js';
-import { calculateScore } from './modules/scorer.js';
-
 // State
 let currentFiles = [];
-let currentMode = 'upload';
+let currentMode = 'paste';
 
 // DOM Elements
 const dropZone = document.getElementById('dropZone');
@@ -18,28 +13,18 @@ const fileInput = document.getElementById('fileInput');
 const fileList = document.getElementById('fileList');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const resultsSection = document.getElementById('resultsSection');
-const modeBtns = document.querySelectorAll('.mode-btn');
+const toggleUploadBtn = document.getElementById('toggleUploadBtn');
+const togglePasteBtn = document.getElementById('togglePasteBtn');
 
 // Text input elements
 const htmlInput = document.getElementById('htmlInput');
 const cssInput = document.getElementById('cssInput');
 const jsInput = document.getElementById('jsInput');
 
-// Initialize
-init();
-
-function init() {
-    setupEventListeners();
-}
-
 function setupEventListeners() {
     // Mode switching
-    modeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const mode = btn.dataset.mode;
-            switchMode(mode);
-        });
-    });
+    toggleUploadBtn.addEventListener('click', () => switchMode('upload'));
+    togglePasteBtn.addEventListener('click', () => switchMode('paste'));
 
     // File upload
     dropZone.addEventListener('click', () => fileInput.click());
@@ -52,17 +37,10 @@ function setupEventListeners() {
     analyzeBtn.addEventListener('click', runAnalysis);
 }
 
+setupEventListeners();
+
 function switchMode(mode) {
     currentMode = mode;
-    
-    // Update buttons
-    modeBtns.forEach(btn => {
-        if (btn.dataset.mode === mode) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
 
     // Toggle input areas
     const uploadMode = document.querySelector('.upload-mode');
@@ -71,9 +49,17 @@ function switchMode(mode) {
     if (mode === 'upload') {
         uploadMode.classList.remove('hidden');
         pasteMode.classList.add('hidden');
+        // Clear paste mode inputs
+        htmlInput.value = '';
+        cssInput.value = '';
+        jsInput.value = '';
     } else {
         uploadMode.classList.add('hidden');
         pasteMode.classList.remove('hidden');
+        // Clear upload mode inputs
+        currentFiles = [];
+        fileInput.value = '';
+        renderFileList();
     }
 
     // Clear results
@@ -151,12 +137,13 @@ function renderFileList() {
                 <span class="file-item-name">${file.name}</span>
                 <span class="file-item-size">${formatBytes(file.size)}</span>
             </div>
-            <button class="remove-file-btn" onclick="removeFile(${index})">✕</button>
+            <button class="remove-file-btn" onclick="removeFile(event, ${index})">✕</button>
         </div>
     `).join('');
 }
 
-window.removeFile = function(index) {
+window.removeFile = function(event, index) {
+    event.stopPropagation();
     currentFiles.splice(index, 1);
     renderFileList();
 };
@@ -333,7 +320,10 @@ function renderDuplicationResults(duplicationResults) {
                     <span class="issue-severity ${dup.severity}">${dup.severity}</span>
                     <span class="issue-title">${dup.title}</span>
                 </div>
-                <div class="issue-description">${dup.description}</div>
+                <div class="issue-description">
+                    ${dup.description}
+                    ${dup.file ? `<br><small style="opacity: 0.8;">File: ${dup.file}</small>` : ''}
+                </div>
                 ${dup.code ? `<div class="issue-code">${escapeHtml(dup.code)}</div>` : ''}
             </div>
         `;

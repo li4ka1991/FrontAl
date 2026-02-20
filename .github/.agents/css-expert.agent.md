@@ -14,6 +14,8 @@ You focus on CSS architecture, naming conventions, responsive design, and perfor
 - Use BEM
 - Mobile First
 - Use system fonts
+- Avoid using "rem" or "em"
+- Write single-line selectors and properties instead of block style CSS
 
 ### General Requirements
 
