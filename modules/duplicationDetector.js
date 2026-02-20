@@ -20,6 +20,12 @@ function detectDuplication(files) {
     if (cssFiles.length > 0) analyzeCssDuplication(cssFiles, results);
     if (htmlFiles.length > 0) analyzeHtmlDuplication(htmlFiles, results);
 
+    // Sort by severity: error > warning > info
+    var severityOrder = { 'error': 0, 'warning': 1, 'info': 2 };
+    results.duplicates.sort(function(a, b) {
+        return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+
     return results;
 }
 

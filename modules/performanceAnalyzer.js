@@ -20,6 +20,12 @@ function analyzePerformance(files) {
 
     generateRecommendations(files, results);
 
+    // Sort by severity: error > warning > info
+    var severityOrder = { 'error': 0, 'warning': 1, 'info': 2 };
+    results.issues.sort(function(a, b) {
+        return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+
     return results;
 }
 

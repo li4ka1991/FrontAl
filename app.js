@@ -386,8 +386,9 @@ function renderRecommendations(performanceResults, scoreResults) {
     // Add PageSpeed recommendations
     if (performanceResults.recommendations && performanceResults.recommendations.length > 0) {
         performanceResults.recommendations.forEach(rec => {
+            const priorityClass = rec.priority === 'high' ? 'recommendation-high' : rec.priority === 'medium' ? 'recommendation-medium' : 'recommendation-variable';
             html += `
-                <div class="recommendation">
+                <div class="recommendation ${priorityClass}">
                     <div class="recommendation-title">
                         ${rec.priority === 'high' ? '🔴' : rec.priority === 'medium' ? '🟡' : '🟢'}
                         ${rec.title}

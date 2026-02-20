@@ -573,6 +573,11 @@ footer {
 
 .center-positioner { text-align: center; }
 
+.result-card-recommendations .result-content { display: flex; flex-wrap: wrap; flex-direction: column;}
+.result-card-recommendations .recommendation-high { order: 1; }
+.result-card-recommendations .recommendation-medium { order: 2; }
+.result-card-recommendations .recommendation-variable { order: 3; }
+
 /* Responsive Design */
 @media (max-width: 767px) {
     .container {
