@@ -33,9 +33,9 @@ function analyzeSizes(files) {
 
     // Calculate percentages
     results.percentages = {
-        html: results.totalSize > 0 ? ((results.breakdown.html / results.totalSize) * 100).toFixed(1) : 0,
-        css: results.totalSize > 0 ? ((results.breakdown.css / results.totalSize) * 100).toFixed(1) : 0,
-        js: results.totalSize > 0 ? ((results.breakdown.js / results.totalSize) * 100).toFixed(1) : 0
+        html: results.totalSize > 0 ? ((results.breakdown.html / results.totalSize) * 100).toFixed(1) : '0',
+        css: results.totalSize > 0 ? ((results.breakdown.css / results.totalSize) * 100).toFixed(1) : '0',
+        js: results.totalSize > 0 ? ((results.breakdown.js / results.totalSize) * 100).toFixed(1) : '0'
     };
 
     // Generate metrics
@@ -60,7 +60,7 @@ function analyzeSizes(files) {
     });
 
     // Detect size issues
-    if (results.totalSize > 500000) { // > 500KB
+    if (results.totalSize > 500 * 1024) { // > 500KB
         results.issues.push({
             severity: 'warning',
             title: 'Large Bundle Size',
@@ -68,7 +68,7 @@ function analyzeSizes(files) {
         });
     }
 
-    if (results.breakdown.js > 250000) { // > 250KB
+    if (results.breakdown.js > 250 * 1024) { // > 250KB
         results.issues.push({
             severity: 'error',
             title: 'Large JavaScript Bundle',
@@ -76,7 +76,7 @@ function analyzeSizes(files) {
         });
     }
 
-    if (results.breakdown.css > 100000) { // > 100KB
+    if (results.breakdown.css > 100 * 1024) { // > 100KB
         results.issues.push({
             severity: 'warning',
             title: 'Large CSS Bundle',

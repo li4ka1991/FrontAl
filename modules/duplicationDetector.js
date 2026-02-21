@@ -39,7 +39,8 @@ function analyzeJSDuplication(files, results) {
         var functions = file.content.match(functionPattern) || [];
         
         functions.forEach(function(func) {
-            var normalized = func.replace(/\s+/g, ' ').trim();
+            // Normalize: collapse whitespace and replace function name with placeholder
+            var normalized = func.replace(/function\s+\w+/, 'function _').replace(/\s+/g, ' ').trim();
             if (!functionCounts[normalized]) {
                 functionCounts[normalized] = { count: 0, files: [] };
             }
@@ -96,7 +97,7 @@ function analyzeJSDuplication(files, results) {
     var loopFunctions = [];
     var loopFiles = [];
     files.forEach(function(file) {
-        var loopWithInlineFunction = /(for|while|forEach|map|filter)\s*\([^)]*\)\s*\{[^}]*function\s*\(/g;
+        var loopWithInlineFunction = /(for|while|forEach|map|filter)\s*\([^)]*function\s*\(/g;
         var matches = file.content.match(loopWithInlineFunction) || [];
         if (matches.length > 0) {
             loopFunctions = loopFunctions.concat(matches);
@@ -218,7 +219,7 @@ function analyzeCssDuplication(files, results) {
     var deepNesting = [];
     var deepFiles = [];
     files.forEach(function(file) {
-        var matches = file.content.match(/(\s+\S+){4,}\s*\{/g) || [];
+        var matches = file.content.match(/\S+(\s+\S+){3,}\s*\{/g) || [];
         if (matches.length > 0) {
             deepNesting = deepNesting.concat(matches);
             if (deepFiles.indexOf(file.name) === -1) {
@@ -381,7 +382,7 @@ function analyzeHtmlDuplication(files, results) {
 
     Object.keys(elementCounts).forEach(function(elem) {
         var data = elementCounts[elem];
-        if (data.count > 2) {
+        if (data.count > 2 && elem.length > 30) {
             results.duplicates.push({
                 type: 'HTML',
                 severity: 'info',

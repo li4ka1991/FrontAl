@@ -15,13 +15,13 @@ function calculateScore(sizeResults, duplicationResults, performanceResults) {
     // Size-based scoring (max -30 points)
     const totalSize = sizeResults.totalSize;
     
-    if (totalSize > 1000000) { // > 1MB
+    if (totalSize > 1024 * 1024) { // > 1MB
         details.sizeScore -= 30;
         details.deductions.push({ reason: 'Bundle size > 1MB', points: 30 });
-    } else if (totalSize > 500000) { // > 500KB
+    } else if (totalSize > 500 * 1024) { // > 500KB
         details.sizeScore -= 20;
         details.deductions.push({ reason: 'Bundle size > 500KB', points: 20 });
-    } else if (totalSize > 250000) { // > 250KB
+    } else if (totalSize > 250 * 1024) { // > 250KB
         details.sizeScore -= 10;
         details.deductions.push({ reason: 'Bundle size > 250KB', points: 10 });
     }
