@@ -1,6 +1,6 @@
 ---
 description: Company frontend engineering standards and subagent routing
-applyTo: all frontend-related files (HTML, CSS, JS, etc.)
+applyTo: "**/*.html,**/*.css,**/*.scss,**/*.sass,**/*.less,**/*.js"
 ---
 
 ### Purpose & Philosophy
