@@ -12,6 +12,27 @@ const chromeLauncher = require('chrome-launcher');
 const PORT = process.env.PORT || 3000;
 const MAX_BODY_SIZE = '1kb';
 const AUDIT_TIMEOUT_MS = 125000;
+const LIGHTHOUSE_CATEGORIES = ['performance', 'accessibility', 'seo', 'best-practices'];
+const MOBILE_LIGHTHOUSE_SETTINGS = Object.freeze({
+    onlyCategories: LIGHTHOUSE_CATEGORIES,
+    formFactor: 'mobile',
+    throttlingMethod: 'simulate',
+    throttling: {
+        rttMs: 150,
+        throughputKbps: 1638.4,
+        requestLatencyMs: 562.5,
+        downloadThroughputKbps: 1474.56,
+        uploadThroughputKbps: 675,
+        cpuSlowdownMultiplier: 4
+    },
+    screenEmulation: {
+        mobile: true,
+        width: 412,
+        height: 823,
+        deviceScaleFactor: 1.75,
+        disabled: false
+    }
+});
 const lighthouseRunner = typeof lighthouseModule === 'function'
     ? lighthouseModule
     : lighthouseModule.default;
@@ -106,21 +127,18 @@ async function runLighthouse(url) {
 
         const config = {
             extends: 'lighthouse:default',
-            settings: {
-                onlyCategories: ['performance', 'accessibility', 'seo', 'best-practices'],
-                emulatedFormFactor: 'mobile',
-                screenEmulation: {
-                    mobile: true,
-                    width: 360,
-                    height: 640,
-                    deviceScaleFactor: 2,
-                    disabled: false
-                }
-            }
+            settings: MOBILE_LIGHTHOUSE_SETTINGS
         };
 
         const runner = lighthouseRunner(url, options, config);
         const result = await withTimeout(runner, AUDIT_TIMEOUT_MS);
+
+        if (!isMobileDiagnosticsResult(result)) {
+            const profileError = new Error('Audit profile mismatch. Only mobile emulated Lighthouse diagnostics are allowed.');
+            profileError.code = 'PROFILE_MISMATCH';
+            throw profileError;
+        }
+
         return result;
     } finally {
         if (chrome) {
@@ -131,6 +149,16 @@ async function runLighthouse(url) {
             }
         }
     }
+}
+
+function isMobileDiagnosticsResult(result) {
+    const settings = result?.lhr?.configSettings;
+    const screen = settings?.screenEmulation;
+
+    return settings?.formFactor === 'mobile'
+        && settings?.throttlingMethod === 'simulate'
+        && screen?.mobile === true
+        && screen?.disabled === false;
 }
 
 function withTimeout(promise, timeoutMs) {

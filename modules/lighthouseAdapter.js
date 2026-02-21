@@ -140,9 +140,13 @@
         };
 
         const coreVitals = [
+            buildMetric(audits, 'first-contentful-paint', 'First Contentful Paint', { good: 1800, warn: 3000 }),
             buildMetric(audits, 'largest-contentful-paint', 'Largest Contentful Paint', { good: 2500, warn: 4000 }),
-            buildMetric(audits, 'interaction-to-next-paint', 'Interaction to Next Paint', { good: 200, warn: 500 }, 'first-input-delay'),
-            buildMetric(audits, 'cumulative-layout-shift', 'Cumulative Layout Shift', { good: 0.1, warn: 0.25 })
+            buildMetric(audits, 'total-blocking-time', 'Total Blocking Time', { good: 200, warn: 600 }),
+            buildMetric(audits, 'cumulative-layout-shift', 'Cumulative Layout Shift', { good: 0.1, warn: 0.25 }),
+            buildMetric(audits, 'speed-index', 'Speed Index', { good: 3400, warn: 5800 }),
+            buildMetric(audits, 'interactive', 'Time to Interactive', { good: 3800, warn: 7300 }),
+            buildMetric(audits, 'interaction-to-next-paint', 'Interaction to Next Paint', { good: 200, warn: 500 }, 'first-input-delay')
         ].filter(Boolean);
 
         const lighthouseResults = {

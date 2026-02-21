@@ -426,7 +426,6 @@ function renderLighthouseScores(lighthouseResults) {
                 </div>
                 <div class="score-labels">
                     <span>${escapeHtml(category.title)}</span>
-                    <span>${escapeHtml(category.id.toUpperCase())}</span>
                 </div>
             </div>
         `;
