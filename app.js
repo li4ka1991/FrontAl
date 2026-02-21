@@ -6,6 +6,7 @@
 // State
 let currentFiles = [];
 let currentMode = 'paste';
+let lastAuditUrl = '';
 
 // DOM Elements
 const dropZone = document.getElementById('dropZone');
@@ -13,8 +14,14 @@ const fileInput = document.getElementById('fileInput');
 const fileList = document.getElementById('fileList');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const resultsSection = document.getElementById('resultsSection');
-const toggleUploadBtn = document.getElementById('toggleUploadBtn');
-const togglePasteBtn = document.getElementById('togglePasteBtn');
+const modeButtons = document.querySelectorAll('.mode-btn');
+const pasteMode = document.querySelector('.paste-mode');
+const uploadMode = document.querySelector('.upload-mode');
+const urlMode = document.querySelector('.url-mode');
+const urlInput = document.getElementById('urlInput');
+const lighthouseScoresCard = document.getElementById('lighthouseScoresCard');
+const coreVitalsCard = document.getElementById('coreVitalsCard');
+const errorCard = document.getElementById('errorCard');
 
 // Text input elements
 const htmlInput = document.getElementById('htmlInput');
@@ -23,8 +30,9 @@ const jsInput = document.getElementById('jsInput');
 
 function setupEventListeners() {
     // Mode switching
-    toggleUploadBtn.addEventListener('click', () => switchMode('upload'));
-    togglePasteBtn.addEventListener('click', () => switchMode('paste'));
+    modeButtons.forEach(button => {
+        button.addEventListener('click', () => switchMode(button.dataset.mode));
+    });
 
     // File upload
     dropZone.addEventListener('click', () => fileInput.click());
@@ -35,6 +43,14 @@ function setupEventListeners() {
 
     // Analyze button
     analyzeBtn.addEventListener('click', runAnalysis);
+
+    // URL input
+    urlInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            runAnalysis();
+        }
+    });
 }
 
 setupEventListeners();
@@ -43,27 +59,46 @@ function switchMode(mode) {
     currentMode = mode;
 
     // Toggle input areas
-    const uploadMode = document.querySelector('.upload-mode');
-    const pasteMode = document.querySelector('.paste-mode');
+    pasteMode.classList.toggle('hidden', mode !== 'paste');
+    uploadMode.classList.toggle('hidden', mode !== 'upload');
+    urlMode.classList.toggle('hidden', mode !== 'url');
+
+    modeButtons.forEach(button => {
+        const isActive = button.dataset.mode === mode;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
 
     if (mode === 'upload') {
-        uploadMode.classList.remove('hidden');
-        pasteMode.classList.add('hidden');
-        // Clear paste mode inputs
         htmlInput.value = '';
         cssInput.value = '';
         jsInput.value = '';
-    } else {
-        uploadMode.classList.add('hidden');
-        pasteMode.classList.remove('hidden');
-        // Clear upload mode inputs
+        dropZone.focus();
+    }
+
+    if (mode === 'paste') {
         currentFiles = [];
         fileInput.value = '';
         renderFileList();
+        htmlInput.focus();
     }
+
+    if (mode === 'url') {
+        currentFiles = [];
+        fileInput.value = '';
+        renderFileList();
+        htmlInput.value = '';
+        cssInput.value = '';
+        jsInput.value = '';
+        urlInput.focus();
+    }
+
+    setAnalyzeButtonLabel();
 
     // Clear results
     resultsSection.classList.add('hidden');
+    resultsSection.setAttribute('aria-busy', 'false');
+    clearErrorCard();
 }
 
 function handleDragOver(e) {
@@ -157,13 +192,22 @@ function formatBytes(bytes) {
 }
 
 async function runAnalysis() {
-    // Prepare files based on mode
+    clearErrorCard();
+
+    if (currentMode === 'url') {
+        await runLighthouseAnalysis();
+        return;
+    }
+
+    await runStaticAnalysis();
+}
+
+async function runStaticAnalysis() {
     let filesToAnalyze = [];
 
     if (currentMode === 'upload') {
         filesToAnalyze = currentFiles;
     } else {
-        // Paste mode - collect from textareas
         if (htmlInput.value.trim()) {
             filesToAnalyze.push({
                 name: 'pasted.html',
@@ -195,55 +239,224 @@ async function runAnalysis() {
         return;
     }
 
-    // Show loading state
-    analyzeBtn.classList.add('loading');
-    analyzeBtn.innerHTML = '<span class="btn-text">Analyzing...</span><span class="btn-icon">⏳</span>';
+    setResultsMode('static');
+    setLoadingState(true, 'Analyzing...');
 
-    // Small delay for UI feedback
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-        // Run all analyses
         const sizeResults = analyzeSizes(filesToAnalyze);
         const duplicationResults = detectDuplication(filesToAnalyze);
         const performanceResults = analyzePerformance(filesToAnalyze);
         const scoreResults = calculateScore(sizeResults, duplicationResults, performanceResults);
 
-        // Render results
-        renderResults(sizeResults, duplicationResults, performanceResults, scoreResults);
-
-        // Show results section
-        resultsSection.classList.remove('hidden');
-
-        // Scroll to results
-        setTimeout(() => {
-            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
+        renderResults({ sizeResults, duplicationResults, performanceResults, scoreResults });
+        showResultsSection();
     } catch (error) {
         console.error('Analysis error:', error);
         alert('An error occurred during analysis. Please check the console for details.');
     } finally {
-        // Reset button
-        analyzeBtn.classList.remove('loading');
-        analyzeBtn.innerHTML = '<span class="btn-text">Analyze Code</span><span class="btn-icon">🔍</span>';
+        setLoadingState(false);
     }
 }
 
-function renderResults(sizeResults, duplicationResults, performanceResults, scoreResults) {
-    // Render overall score
-    renderOverallScore(scoreResults);
+async function runLighthouseAnalysis() {
+    setResultsMode('lighthouse');
+    const url = getUrlToAudit();
+    if (!url) {
+        renderErrorCard('Please enter a valid URL starting with http or https.');
+        showResultsSection();
+        return;
+    }
 
-    // Render size results
-    renderSizeResults(sizeResults);
+    lastAuditUrl = url;
+    setLoadingState(true, 'Running Lighthouse...');
 
-    // Render duplication results
-    renderDuplicationResults(duplicationResults);
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-    // Render performance results
-    renderPerformanceResults(performanceResults);
+    try {
+        const rawResults = await fetchLighthouseAudit(url);
+        const adapted = adaptLighthouseResults(rawResults);
 
-    // Render recommendations
-    renderRecommendations(performanceResults, scoreResults);
+        renderResults({
+            performanceResults: adapted.performanceResults,
+            scoreResults: adapted.scoreResults,
+            lighthouseResults: adapted.lighthouseResults
+        });
+
+        showResultsSection();
+    } catch (error) {
+        console.error('Audit error:', error);
+        renderErrorCard(getUserFriendlyError(error));
+        showResultsSection();
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+function getUrlToAudit() {
+    const value = urlInput.value.trim();
+    if (!value) {
+        return '';
+    }
+
+    try {
+        const parsed = new URL(value);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return '';
+        }
+        return parsed.toString();
+    } catch (error) {
+        return '';
+    }
+}
+
+function setAnalyzeButtonLabel() {
+    const label = currentMode === 'url' ? 'Analyze URL' : 'Analyze Code';
+    analyzeBtn.innerHTML = `<span class="btn-text">${label}</span><span class="btn-icon">🔍</span>`;
+}
+
+function setLoadingState(isLoading, text = 'Analyzing...') {
+    analyzeBtn.classList.toggle('loading', isLoading);
+    analyzeBtn.disabled = isLoading;
+    resultsSection.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+
+    if (isLoading) {
+        analyzeBtn.innerHTML = `<span class="btn-text">${text}</span><span class="btn-icon">⏳</span>`;
+        return;
+    }
+
+    setAnalyzeButtonLabel();
+}
+
+function setResultsMode(mode) {
+    const sizeCard = document.getElementById('sizeResults').closest('.result-card');
+    const duplicationCard = document.getElementById('duplicationResults').closest('.result-card');
+
+    const isLighthouse = mode === 'lighthouse';
+    sizeCard.classList.toggle('hidden', isLighthouse);
+    duplicationCard.classList.toggle('hidden', isLighthouse);
+    lighthouseScoresCard.classList.toggle('hidden', !isLighthouse);
+    coreVitalsCard.classList.toggle('hidden', !isLighthouse);
+}
+
+function showResultsSection() {
+    resultsSection.classList.remove('hidden');
+    setTimeout(() => {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+}
+
+function getUserFriendlyError(error) {
+    if (!error) return 'Audit failed. Please try again.';
+    if (error.code === 'timeout') return 'Audit timed out. Please try again with a faster page or later.';
+    if (error.code === 'http_error') return error.message || 'Audit failed. Please verify the URL.';
+    return 'Audit failed. Please check that the backend server is running.';
+}
+
+function renderErrorCard(message) {
+    const container = document.getElementById('errorResults');
+    const safeMessage = escapeHtml(message || 'Audit failed. Please try again.');
+
+    container.innerHTML = `
+        <p>${safeMessage}</p>
+        <button class="retry-btn" id="retryAuditBtn" type="button">Retry audit</button>
+    `;
+
+    errorCard.classList.remove('hidden');
+    const retryBtn = document.getElementById('retryAuditBtn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', () => {
+            if (lastAuditUrl) {
+                urlInput.value = lastAuditUrl;
+            }
+            runAnalysis();
+        });
+    }
+}
+
+function clearErrorCard() {
+    const container = document.getElementById('errorResults');
+    if (container) {
+        container.innerHTML = '';
+    }
+    if (errorCard) {
+        errorCard.classList.add('hidden');
+    }
+}
+
+function renderResults({ sizeResults, duplicationResults, performanceResults, scoreResults, lighthouseResults }) {
+    if (scoreResults) {
+        renderOverallScore(scoreResults);
+    }
+
+    if (sizeResults) {
+        renderSizeResults(sizeResults);
+    }
+
+    if (duplicationResults) {
+        renderDuplicationResults(duplicationResults);
+    }
+
+    if (performanceResults) {
+        renderPerformanceResults(performanceResults);
+        renderRecommendations(performanceResults, scoreResults);
+    }
+
+    if (lighthouseResults) {
+        renderLighthouseScores(lighthouseResults);
+        renderCoreVitals(lighthouseResults);
+    }
+}
+
+function renderLighthouseScores(lighthouseResults) {
+    const container = document.getElementById('lighthouseScoresResults');
+    if (!lighthouseResults.categoryScores || lighthouseResults.categoryScores.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">No Lighthouse scores available.</p>';
+        return;
+    }
+
+    let html = '<div class="lighthouse-scores">';
+    lighthouseResults.categoryScores.forEach(category => {
+        const statusClass = category.status === 'good' ? 'score-good' : category.status === 'warning' ? 'score-warning' : 'score-danger';
+        html += `
+            <div class="lighthouse-score">
+                <div class="score-ring ${statusClass}" style="--score:${category.score}">
+                    <span>${category.score}</span>
+                </div>
+                <div class="score-labels">
+                    <span>${escapeHtml(category.title)}</span>
+                    <span>${escapeHtml(category.id.toUpperCase())}</span>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
+}
+
+function renderCoreVitals(lighthouseResults) {
+    const container = document.getElementById('coreVitalsResults');
+    if (!lighthouseResults.coreVitals || lighthouseResults.coreVitals.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary);">Core Web Vitals data is unavailable.</p>';
+        return;
+    }
+
+    let html = '<div class="vitals-list">';
+    lighthouseResults.coreVitals.forEach(metric => {
+        const ratingClass = metric.rating === 'good' ? 'vital-good' : metric.rating === 'warning' ? 'vital-warning' : 'vital-danger';
+        html += `
+            <div class="vital-item">
+                <span class="vital-label">${escapeHtml(metric.label)}</span>
+                <span class="vital-value">${escapeHtml(metric.value)}</span>
+                <span class="vital-badge ${ratingClass}">${escapeHtml(metric.rating)}</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    container.innerHTML = html;
 }
 
 function renderOverallScore(scoreResults) {
@@ -251,8 +464,9 @@ function renderOverallScore(scoreResults) {
     const scoreCircle = scoreElement.querySelector('.score-circle');
     const scoreValue = scoreElement.querySelector('.score-value');
 
-    scoreValue.textContent = scoreResults.score;
-    scoreCircle.className = `score-circle ${scoreResults.category}`;
+    const score = typeof scoreResults.score === 'number' ? scoreResults.score : 0;
+    scoreValue.textContent = score;
+    scoreCircle.className = `score-circle ${scoreResults.category || 'warning'}`;
 }
 
 function renderSizeResults(sizeResults) {
@@ -317,12 +531,12 @@ function renderDuplicationResults(duplicationResults) {
         html += `
             <div class="issue ${dup.severity}">
                 <div class="issue-header">
-                    <span class="issue-severity ${dup.severity}">${dup.severity}</span>
-                    <span class="issue-title">${dup.title}</span>
+                    <span class="issue-severity ${dup.severity}">${escapeHtml(dup.severity)}</span>
+                    <span class="issue-title">${escapeHtml(dup.title)}</span>
                 </div>
                 <div class="issue-description">
-                    ${dup.description}
-                    ${dup.file ? `<br><small style="opacity: 0.8;">File: ${dup.file}</small>` : ''}
+                    ${escapeHtml(dup.description)}
+                    ${dup.file ? `<br><small style="opacity: 0.8;">File: ${escapeHtml(dup.file)}</small>` : ''}
                 </div>
                 ${dup.code ? `<div class="issue-code">${escapeHtml(dup.code)}</div>` : ''}
             </div>
@@ -335,9 +549,12 @@ function renderDuplicationResults(duplicationResults) {
 
 function renderPerformanceResults(performanceResults) {
     const container = document.getElementById('performanceResults');
-    
-    if (performanceResults.issues.length === 0) {
-        container.innerHTML = '<p style="color: var(--secondary); font-weight: 600;">✓ No critical performance issues detected!</p>';
+
+    if (!performanceResults || performanceResults.issues.length === 0) {
+        const message = performanceResults && performanceResults.mode === 'lighthouse'
+            ? '✓ No critical Lighthouse performance issues detected!'
+            : '✓ No critical performance issues detected!';
+        container.innerHTML = `<p style="color: var(--secondary); font-weight: 600;">${message}</p>`;
         return;
     }
 
@@ -353,17 +570,22 @@ function renderPerformanceResults(performanceResults) {
 }
 
 function renderIssue(issue) {
+    const severity = issue.severity || 'info';
+    const title = escapeHtml(issue.title || 'Issue');
+    const description = escapeHtml(issue.description || '');
+    const suggestion = issue.suggestion ? escapeHtml(issue.suggestion) : '';
+    const file = issue.file ? escapeHtml(issue.file) : '';
     return `
-        <div class="issue ${issue.severity}">
+        <div class="issue ${severity}">
             <div class="issue-header">
-                <span class="issue-severity ${issue.severity}">${issue.severity}</span>
-                <span class="issue-title">${issue.title}</span>
+                <span class="issue-severity ${severity}">${escapeHtml(severity)}</span>
+                <span class="issue-title">${title}</span>
             </div>
             <div class="issue-description">
-                ${issue.description}
-                ${issue.file ? `<br><small style="opacity: 0.8;">File: ${issue.file}</small>` : ''}
+                ${description}
+                ${file ? `<br><small style="opacity: 0.8;">File: ${file}</small>` : ''}
             </div>
-            ${issue.suggestion ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.9rem;"><strong>💡 Suggestion:</strong> ${issue.suggestion}</div>` : ''}
+            ${suggestion ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.9rem;"><strong>💡 Suggestion:</strong> ${suggestion}</div>` : ''}
             ${issue.code ? `<div class="issue-code">${escapeHtml(issue.code)}</div>` : ''}
         </div>
     `;
@@ -375,28 +597,28 @@ function renderRecommendations(performanceResults, scoreResults) {
     let html = '';
 
     // Add score summary
-    if (scoreResults.summary) {
+    if (scoreResults && scoreResults.summary) {
         html += '<div style="margin-bottom: 1.5rem;">';
         scoreResults.summary.forEach(msg => {
-            html += `<p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${msg}</p>`;
+            html += `<p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${escapeHtml(msg)}</p>`;
         });
         html += '</div>';
     }
 
     // Add PageSpeed recommendations
-    if (performanceResults.recommendations && performanceResults.recommendations.length > 0) {
+    if (performanceResults && performanceResults.recommendations && performanceResults.recommendations.length > 0) {
         performanceResults.recommendations.forEach(rec => {
             const priorityClass = rec.priority === 'high' ? 'recommendation-high' : rec.priority === 'medium' ? 'recommendation-medium' : 'recommendation-variable';
             html += `
                 <div class="recommendation ${priorityClass}">
                     <div class="recommendation-title">
                         ${rec.priority === 'high' ? '🔴' : rec.priority === 'medium' ? '🟡' : '🟢'}
-                        ${rec.title}
+                        ${escapeHtml(rec.title)}
                     </div>
                     <div class="recommendation-description">
-                        ${rec.description}
+                        ${escapeHtml(rec.description)}
                         <br><br>
-                        <strong>Impact:</strong> ${rec.impact}
+                        <strong>Impact:</strong> ${escapeHtml(rec.impact)}
                     </div>
                 </div>
             `;

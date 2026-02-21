@@ -73,6 +73,43 @@ header {
     margin-bottom: 2rem;
 }
 
+.mode-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.mode-btn {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--border);
+    background: transparent;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.mode-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.mode-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.mode-btn:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.4);
+    outline-offset: 2px;
+}
+
 .file-upload-toggle {
     text-align: center;
     margin: 1.5rem 0;
@@ -240,6 +277,36 @@ textarea:focus {
     border-color: var(--primary);
 }
 
+.url-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.url-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+#urlInput {
+    padding: 0.9rem 1rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    width: 100%;
+}
+
+#urlInput:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.url-help {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
 /* Analyze Button */
 .analyze-btn {
     width: 100%;
@@ -371,6 +438,148 @@ textarea:focus {
 
 .result-content {
     color: var(--text-secondary);
+}
+
+.lighthouse-card {
+    border-top: 4px solid var(--info);
+}
+
+.lighthouse-scores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+}
+
+.lighthouse-score {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.score-ring {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: conic-gradient(var(--score-color) calc(var(--score) * 1%), var(--border) 0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.score-ring span {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.score-good {
+    --score-color: var(--secondary);
+}
+
+.score-warning {
+    --score-color: var(--warning);
+}
+
+.score-danger {
+    --score-color: var(--danger);
+}
+
+.score-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.score-labels span:first-child {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.score-labels span:last-child {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.vitals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.vital-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(59, 130, 246, 0.05);
+    gap: 1rem;
+}
+
+.vital-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.vital-value {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.vital-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: white;
+}
+
+.vital-good {
+    background: var(--secondary);
+}
+
+.vital-warning {
+    background: var(--warning);
+}
+
+.vital-danger {
+    background: var(--danger);
+}
+
+.error-card {
+    border-left: 4px solid var(--danger);
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.error-card .retry-btn {
+    margin-top: 1rem;
+    padding: 0.7rem 1.2rem;
+    border-radius: 10px;
+    border: 2px solid var(--danger);
+    background: transparent;
+    color: var(--danger);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.error-card .retry-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    transform: translateY(-1px);
 }
 
 /* Metrics Display */

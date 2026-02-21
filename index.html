@@ -18,6 +18,12 @@
 
         <main>
             <section class="input-section">
+                <div class="mode-toggle" role="tablist" aria-label="Input mode">
+                    <button class="mode-btn active" type="button" data-mode="paste" aria-pressed="true">Paste Code</button>
+                    <button class="mode-btn" type="button" data-mode="upload" aria-pressed="false">Upload Files</button>
+                    <button class="mode-btn" type="button" data-mode="url" aria-pressed="false">Audit URL</button>
+                </div>
+
                 <div class="input-area paste-mode">
                     <div class="paste-container">
                         <div class="code-input-group">
@@ -39,14 +45,10 @@
                             <textarea id="jsInput" placeholder="Paste your JavaScript code here..."></textarea>
                         </div>
                     </div>
-                    
-                    <div class="file-upload-toggle">
-                        <button class="toggle-upload-btn" id="toggleUploadBtn">📁 Or upload files instead</button>
-                    </div>
                 </div>
 
                 <div class="input-area upload-mode hidden">
-                    <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone" id="dropZone" tabindex="0">
                         <div class="drop-zone-content">
                             <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -57,7 +59,14 @@
                         </div>
                         <div class="file-list" id="fileList"></div>
                     </div>
-                    <div class="center-positioner"><button class="toggle-upload-btn" id="togglePasteBtn" style="margin-top: 1rem;">📝 Back to paste mode</button></div>
+                </div>
+
+                <div class="input-area url-mode hidden">
+                    <div class="url-container">
+                        <label for="urlInput" class="url-label">URL to audit</label>
+                        <input id="urlInput" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" aria-describedby="urlHelp">
+                        <p id="urlHelp" class="url-help">Enter a full URL starting with http or https.</p>
+                    </div>
                 </div>
 
                 <button class="analyze-btn" id="analyzeBtn">
@@ -66,7 +75,7 @@
                 </button>
             </section>
 
-            <section class="results-section hidden" id="resultsSection">
+            <section class="results-section hidden" id="resultsSection" aria-live="polite" aria-busy="false">
                 <div class="results-header">
                     <h2>Analysis Results</h2>
                     <div class="overall-score" id="overallScore">
@@ -88,6 +97,16 @@
                         <div id="duplicationResults" class="result-content"></div>
                     </div>
 
+                    <div class="result-card lighthouse-card hidden" id="lighthouseScoresCard">
+                        <h3>🧭 Lighthouse Scores</h3>
+                        <div id="lighthouseScoresResults" class="result-content"></div>
+                    </div>
+
+                    <div class="result-card lighthouse-card hidden" id="coreVitalsCard">
+                        <h3>🧪 Core Web Vitals</h3>
+                        <div id="coreVitalsResults" class="result-content"></div>
+                    </div>
+
                     <div class="result-card">
                         <h3>⚡ Performance Issues</h3>
                         <div id="performanceResults" class="result-content"></div>
@@ -96,6 +115,11 @@
                     <div class="result-card result-card-recommendations">
                         <h3>💡 Recommendations</h3>
                         <div id="recommendationsResults" class="result-content"></div>
+                    </div>
+
+                    <div class="result-card error-card hidden" id="errorCard">
+                        <h3>🚫 Audit Error</h3>
+                        <div id="errorResults" class="result-content"></div>
                     </div>
                 </div>
             </section>
@@ -108,6 +132,8 @@
     <script src="modules/duplicationDetector.js"></script>
     <script src="modules/performanceAnalyzer.js"></script>
     <script src="modules/scorer.js"></script>
+    <script src="modules/lighthouseClient.js"></script>
+    <script src="modules/lighthouseAdapter.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
