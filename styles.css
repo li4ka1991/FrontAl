@@ -635,6 +635,12 @@ textarea:focus {
 }
 
 /* Issues List */
+
+.issues-list {
+    display: flex;
+    flex-direction: column;
+}
+
 .issue {
     padding: 1rem;
     margin-bottom: 0.75rem;
@@ -646,16 +652,19 @@ textarea:focus {
 .issue.error {
     border-color: var(--danger);
     background: rgba(239, 68, 68, 0.1);
+    order: 1;
 }
 
 .issue.warning {
     border-color: var(--warning);
     background: rgba(245, 158, 11, 0.1);
+    order: 2;
 }
 
 .issue.info {
     border-color: var(--info);
     background: rgba(59, 130, 246, 0.1);
+    order: 3;
 }
 
 .issue-header {

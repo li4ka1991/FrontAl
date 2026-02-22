@@ -82,32 +82,105 @@ function calculateScore(sizeResults, duplicationResults, performanceResults) {
     score = Math.max(0, details.sizeScore + details.duplicationScore + details.performanceScore - 200);
     score = Math.round(score);
 
-    // Determine grade
-    let grade, category;
-    if (score >= 90) {
-        grade = 'A';
-        category = 'good';
-    } else if (score >= 75) {
-        grade = 'B';
-        category = 'good';
-    } else if (score >= 60) {
-        grade = 'C';
-        category = 'warning';
-    } else if (score >= 40) {
-        grade = 'D';
-        category = 'warning';
-    } else {
-        grade = 'F';
-        category = 'danger';
-    }
+    const grading = getGradeAndCategory(score);
 
     return {
         score,
-        grade,
-        category,
+        grade: grading.grade,
+        category: grading.category,
         details,
         summary: generateSummary(score, details)
     };
+}
+
+function calculateCombinedUrlScore(staticScoreResults, lighthouseScoreResults) {
+    const staticScore = Number.isFinite(staticScoreResults && staticScoreResults.score)
+        ? Math.max(0, Math.min(100, Math.round(staticScoreResults.score)))
+        : null;
+    const lighthouseScore = Number.isFinite(lighthouseScoreResults && lighthouseScoreResults.score)
+        ? Math.max(0, Math.min(100, Math.round(lighthouseScoreResults.score)))
+        : null;
+
+    let staticWeight = 0;
+    let lighthouseWeight = 0;
+
+    if (staticScore !== null && lighthouseScore !== null) {
+        staticWeight = 0.5;
+        lighthouseWeight = 0.5;
+    } else if (staticScore !== null) {
+        staticWeight = 1;
+    } else if (lighthouseScore !== null) {
+        lighthouseWeight = 1;
+    }
+
+    const combinedScore = Math.round((staticScore || 0) * staticWeight + (lighthouseScore || 0) * lighthouseWeight);
+
+    const baseDetails = staticScoreResults && staticScoreResults.details
+        ? {
+            sizeScore: staticScoreResults.details.sizeScore,
+            duplicationScore: staticScoreResults.details.duplicationScore,
+            performanceScore: staticScoreResults.details.performanceScore,
+            deductions: Array.isArray(staticScoreResults.details.deductions) ? staticScoreResults.details.deductions.slice() : []
+        }
+        : {
+            sizeScore: 100,
+            duplicationScore: 100,
+            performanceScore: 100,
+            deductions: []
+        };
+
+    if (staticScore !== null && lighthouseScore !== null) {
+        const targetPerformanceScore = Math.max(0, Math.min(100, baseDetails.performanceScore + (combinedScore - staticScore)));
+        baseDetails.performanceScore = Math.round(targetPerformanceScore);
+
+        if (lighthouseScore < 90) {
+            baseDetails.deductions.push({
+                reason: 'Lighthouse performance score impact',
+                points: Math.max(1, Math.round((100 - lighthouseScore) * 0.1))
+            });
+        }
+    } else if (staticScore === null && lighthouseScore !== null) {
+        baseDetails.performanceScore = lighthouseScore;
+        if (lighthouseScore < 90) {
+            baseDetails.deductions.push({
+                reason: 'Lighthouse score below optimal range',
+                points: Math.max(1, Math.round((100 - lighthouseScore) * 0.1))
+            });
+        }
+    }
+
+    const grading = getGradeAndCategory(combinedScore);
+
+    return {
+        score: combinedScore,
+        grade: grading.grade,
+        category: grading.category,
+        details: baseDetails,
+        summary: generateSummary(combinedScore, baseDetails),
+        mode: 'combined',
+        sourceScores: {
+            staticScore,
+            lighthouseScore,
+            staticWeight,
+            lighthouseWeight
+        }
+    };
+}
+
+function getGradeAndCategory(score) {
+    if (score >= 90) {
+        return { grade: 'A', category: 'good' };
+    }
+    if (score >= 75) {
+        return { grade: 'B', category: 'good' };
+    }
+    if (score >= 60) {
+        return { grade: 'C', category: 'warning' };
+    }
+    if (score >= 40) {
+        return { grade: 'D', category: 'warning' };
+    }
+    return { grade: 'F', category: 'danger' };
 }
 
 function generateSummary(score, details) {

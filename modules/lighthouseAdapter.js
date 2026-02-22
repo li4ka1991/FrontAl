@@ -125,10 +125,6 @@
         const scoreResults = {
             score: performanceScore ? performanceScore.score : 0,
             category: getScoreCategory(performanceScore ? performanceScore.score : 0),
-            summary: [
-                'Lighthouse audit complete. Review category scores and top opportunities.',
-                'Focus on the lowest-scoring category to prioritize improvements.'
-            ],
             mode: 'lighthouse'
         };
 

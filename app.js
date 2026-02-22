@@ -285,6 +285,16 @@ async function runLighthouseAnalysis() {
         ]);
 
         const adapted = adaptLighthouseResults(rawResults);
+        let staticScoreResults = null;
+        const mergedPerformanceResults = {
+            issues: Array.isArray(adapted.performanceResults && adapted.performanceResults.issues)
+                ? adapted.performanceResults.issues.slice()
+                : [],
+            recommendations: Array.isArray(adapted.performanceResults && adapted.performanceResults.recommendations)
+                ? adapted.performanceResults.recommendations.slice()
+                : [],
+            mode: 'combined'
+        };
 
         // Run static analysis if we successfully fetched resources
         let staticAnalysisResults = {};
@@ -319,16 +329,33 @@ async function runLighthouseAnalysis() {
             }
 
             if (filesToAnalyze.length > 0) {
+                const staticPerformanceResults = analyzePerformance(filesToAnalyze);
                 staticAnalysisResults = {
                     sizeResults: analyzeSizes(filesToAnalyze),
                     duplicationResults: detectDuplication(filesToAnalyze)
                 };
+                staticScoreResults = calculateScore(
+                    staticAnalysisResults.sizeResults,
+                    staticAnalysisResults.duplicationResults,
+                    staticPerformanceResults
+                );
+
+                if (staticPerformanceResults) {
+                    if (Array.isArray(staticPerformanceResults.issues)) {
+                        mergedPerformanceResults.issues = mergedPerformanceResults.issues.concat(staticPerformanceResults.issues);
+                    }
+                    if (Array.isArray(staticPerformanceResults.recommendations)) {
+                        mergedPerformanceResults.recommendations = mergedPerformanceResults.recommendations.concat(staticPerformanceResults.recommendations);
+                    }
+                }
             }
         }
 
+        const combinedScoreResults = calculateCombinedUrlScore(staticScoreResults, adapted.scoreResults);
+
         renderResults({
-            performanceResults: adapted.performanceResults,
-            scoreResults: adapted.scoreResults,
+            performanceResults: mergedPerformanceResults,
+            scoreResults: combinedScoreResults,
             lighthouseResults: adapted.lighthouseResults,
             sizeResults: staticAnalysisResults.sizeResults,
             duplicationResults: staticAnalysisResults.duplicationResults
@@ -382,6 +409,7 @@ function setLoadingState(isLoading, text = 'Analyzing...') {
 function setResultsMode(mode) {
     const sizeCard = document.getElementById('sizeResults').closest('.result-card');
     const duplicationCard = document.getElementById('duplicationResults').closest('.result-card');
+    const resultCardGroups = document.querySelectorAll('.result-card-group');
 
     if (mode === 'lighthouse') {
         // Lighthouse only (old behavior, kept for compatibility)
@@ -389,18 +417,21 @@ function setResultsMode(mode) {
         duplicationCard.classList.add('hidden');
         lighthouseScoresCard.classList.remove('hidden');
         coreVitalsCard.classList.remove('hidden');
+        resultCardGroups.forEach(group => group.classList.remove('hidden'));
     } else if (mode === 'combined') {
         // Show all cards for URL analysis
         sizeCard.classList.remove('hidden');
         duplicationCard.classList.remove('hidden');
         lighthouseScoresCard.classList.remove('hidden');
         coreVitalsCard.classList.remove('hidden');
+        resultCardGroups.forEach(group => group.classList.remove('hidden'));
     } else {
-        // Static analysis only
+        // Static analysis only (paste/upload)
         sizeCard.classList.remove('hidden');
         duplicationCard.classList.remove('hidden');
         lighthouseScoresCard.classList.add('hidden');
         coreVitalsCard.classList.add('hidden');
+        resultCardGroups.forEach(group => group.classList.add('hidden'));
     }
 }
 
@@ -475,6 +506,11 @@ function clearResults() {
     const scoreCircle = document.querySelector('.score-circle');
     if (scoreCircle) {
         scoreCircle.classList.remove('good', 'warning', 'danger');
+        scoreCircle.removeAttribute('title');
+    }
+    const overallScore = document.getElementById('overallScore');
+    if (overallScore) {
+        overallScore.removeAttribute('title');
     }
 
     // Hide Lighthouse cards
@@ -569,6 +605,37 @@ function renderOverallScore(scoreResults) {
     const score = typeof scoreResults.score === 'number' ? scoreResults.score : 0;
     scoreValue.textContent = score;
     scoreCircle.className = `score-circle ${scoreResults.category || 'warning'}`;
+
+    const breakdownText = getScoreBreakdownText(scoreResults);
+    if (breakdownText) {
+        scoreCircle.setAttribute('title', breakdownText);
+        scoreElement.setAttribute('title', breakdownText);
+    } else {
+        scoreCircle.removeAttribute('title');
+        scoreElement.removeAttribute('title');
+    }
+}
+
+function getScoreBreakdownText(scoreResults) {
+    if (!scoreResults || scoreResults.mode !== 'combined' || !scoreResults.sourceScores) {
+        return '';
+    }
+
+    const staticScore = scoreResults.sourceScores.staticScore;
+    const lighthouseScore = scoreResults.sourceScores.lighthouseScore;
+    const staticWeight = scoreResults.sourceScores.staticWeight;
+    const lighthouseWeight = scoreResults.sourceScores.lighthouseWeight;
+
+    if (typeof staticScore === 'number' && typeof lighthouseScore === 'number' && staticWeight > 0 && lighthouseWeight > 0) {
+        return `${staticScore} (Static Score) × ${Math.round(staticWeight * 100)}% + ${lighthouseScore} (Lighthouse Score) × ${Math.round(lighthouseWeight * 100)}% = ${scoreResults.score}`;
+    }
+    if (typeof staticScore === 'number') {
+        return `${staticScore} (Static Score) = ${scoreResults.score}`;
+    }
+    if (typeof lighthouseScore === 'number') {
+        return `${lighthouseScore} (Lighthouse Score) = ${scoreResults.score}`;
+    }
+    return '';
 }
 
 function renderSizeResults(sizeResults) {
@@ -704,6 +771,28 @@ function renderRecommendations(performanceResults, scoreResults) {
         scoreResults.summary.forEach(msg => {
             html += `<p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${escapeHtml(msg)}</p>`;
         });
+
+        if (scoreResults.mode === 'combined' && scoreResults.sourceScores) {
+            const staticScore = scoreResults.sourceScores.staticScore;
+            const lighthouseScore = scoreResults.sourceScores.lighthouseScore;
+            const staticWeight = scoreResults.sourceScores.staticWeight;
+            const lighthouseWeight = scoreResults.sourceScores.lighthouseWeight;
+
+            if (typeof staticScore === 'number' && typeof lighthouseScore === 'number' && staticWeight > 0 && lighthouseWeight > 0) {
+                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
+                    *Score breakdown: ${staticScore} (Static Score) × ${Math.round(staticWeight * 100)}% + ${lighthouseScore} (Lighthouse Score) × ${Math.round(lighthouseWeight * 100)}% = ${scoreResults.score}
+                </p>`;
+            } else if (typeof staticScore === 'number') {
+                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
+                    *Score breakdown: ${staticScore} (Static Score) = ${scoreResults.score}
+                </p>`;
+            } else if (typeof lighthouseScore === 'number') {
+                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
+                    *Score breakdown: ${lighthouseScore} (Lighthouse Score) = ${scoreResults.score}
+                </p>`;
+            }
+        }
+
         html += '</div>';
     }
 
