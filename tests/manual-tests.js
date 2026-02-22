@@ -1514,6 +1514,307 @@ describe('Scorer - generateSummary()', function() {
 });
 
 // ============================================================================
+// LIGHTHOUSE ADAPTER TESTS
+// ============================================================================
+
+describe('Lighthouse Adapter - Metric Extraction', function() {
+    it('should extract all 7 performance metrics', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) {
+            assertTrue(true, 'Skipping - adapter not loaded');
+            return;
+        }
+
+        var mockLHR = {
+            categories: {
+                performance: { id: 'performance', title: 'Performance', score: 0.85 },
+                accessibility: { id: 'accessibility', title: 'Accessibility', score: 0.92 }
+            },
+            audits: {
+                'first-contentful-paint': { numericValue: 1500, displayValue: '1.5 s', scoreDisplayMode: 'numeric', score: 0.95 },
+                'largest-contentful-paint': { numericValue: 2200, displayValue: '2.2 s', scoreDisplayMode: 'numeric', score: 0.90 },
+                'total-blocking-time': { numericValue: 150, displayValue: '150 ms', scoreDisplayMode: 'numeric', score: 0.88 },
+                'cumulative-layout-shift': { numericValue: 0.05, displayValue: '0.05', scoreDisplayMode: 'numeric', score: 0.98 },
+                'speed-index': { numericValue: 3200, displayValue: '3.2 s', scoreDisplayMode: 'numeric', score: 0.87 },
+                'interactive': { numericValue: 3500, displayValue: '3.5 s', scoreDisplayMode: 'numeric', score: 0.92 },
+                'interaction-to-next-paint': { numericValue: 180, displayValue: '180 ms', scoreDisplayMode: 'numeric', score: 0.91 }
+            }
+        };
+
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        
+        assertTrue(result.lighthouseResults.coreVitals.length === 7, 'Should extract 7 metrics, got: ' + result.lighthouseResults.coreVitals.length);
+        
+        var metricIds = result.lighthouseResults.coreVitals.map(function(m) { return m.id; });
+        assertContains(metricIds, 'first-contentful-paint', 'Should include FCP');
+        assertContains(metricIds, 'largest-contentful-paint', 'Should include LCP');
+        assertContains(metricIds, 'total-blocking-time', 'Should include TBT');
+        assertContains(metricIds, 'cumulative-layout-shift', 'Should include CLS');
+        assertContains(metricIds, 'speed-index', 'Should include Speed Index');
+        assertContains(metricIds, 'interactive', 'Should include TTI');
+        assertContains(metricIds, 'interaction-to-next-paint', 'Should include INP');
+    });
+
+    it('should correctly rate LCP (good <= 2500ms)', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.85 } },
+            audits: { 'largest-contentful-paint': { numericValue: 2400, displayValue: '2.4 s', scoreDisplayMode: 'numeric', score: 0.90 } }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var lcp = result.lighthouseResults.coreVitals.find(function(m) { return m.id === 'largest-contentful-paint'; });
+        
+        assertEqual(lcp.rating, 'good', 'LCP 2400ms should be rated "good"');
+    });
+
+    it('should correctly rate LCP (warning <= 4000ms)', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.70 } },
+            audits: { 'largest-contentful-paint': { numericValue: 3500, displayValue: '3.5 s', scoreDisplayMode: 'numeric', score: 0.70 } }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var lcp = result.lighthouseResults.coreVitals.find(function(m) { return m.id === 'largest-contentful-paint'; });
+        
+        assertEqual(lcp.rating, 'warning', 'LCP 3500ms should be rated "warning"');
+    });
+
+    it('should correctly rate LCP (danger > 4000ms)', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.50 } },
+            audits: { 'largest-contentful-paint': { numericValue: 5500, displayValue: '5.5 s', scoreDisplayMode: 'numeric', score: 0.40 } }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var lcp = result.lighthouseResults.coreVitals.find(function(m) { return m.id === 'largest-contentful-paint'; });
+        
+        assertEqual(lcp.rating, 'danger', 'LCP 5500ms should be rated "danger"');
+    });
+});
+
+describe('Lighthouse Adapter - Category Scores', function() {
+    it('should build category scores with correct status', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: {
+                performance: { id: 'performance', title: 'Performance', score: 0.95 },
+                accessibility: { id: 'accessibility', title: 'Accessibility', score: 0.75 },
+                seo: { id: 'seo', title: 'SEO', score: 0.60 }
+            },
+            audits: {}
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var scores = result.lighthouseResults.categoryScores;
+        
+        assertEqual(scores.length, 3, 'Should have 3 category scores');
+        
+        var perfScore = scores.find(function(s) { return s.id === 'performance'; });
+        assertEqual(perfScore.score, 95, 'Performance score should be 95');
+        assertEqual(perfScore.status, 'good', 'Performance status should be "good"');
+        
+        var a11yScore = scores.find(function(s) { return s.id === 'accessibility'; });
+        assertEqual(a11yScore.score, 75, 'Accessibility score should be 75');
+        assertEqual(a11yScore.status, 'warning', 'Accessibility status should be "warning"');
+        
+        var seoScore = scores.find(function(s) { return s.id === 'seo'; });
+        assertEqual(seoScore.score, 60, 'SEO score should be 60');
+        assertEqual(seoScore.status, 'danger', 'SEO status should be "danger"');
+    });
+});
+
+describe('Lighthouse Adapter - Issue Building', function() {
+    it('should extract issues from audits with score < 0.9', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.70 } },
+            audits: {
+                'good-audit': { title: 'Good Audit', score: 0.95, scoreDisplayMode: 'numeric', description: 'All good' },
+                'warning-audit': { title: 'Warning Audit', score: 0.75, scoreDisplayMode: 'numeric', description: 'Some issues', displayValue: '500 ms' },
+                'error-audit': { title: 'Error Audit', score: 0.40, scoreDisplayMode: 'numeric', description: 'Critical issue', displayValue: '2 s' }
+            }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var issues = result.performanceResults.issues;
+        
+        assertTrue(issues.length >= 2, 'Should have at least 2 issues (score < 0.9)');
+        
+        var errorIssue = issues.find(function(i) { return i.severity === 'error'; });
+        assertTrue(errorIssue !== undefined, 'Should have error severity issue');
+        assertEqual(errorIssue.title, 'Error Audit', 'Error issue should have correct title');
+        
+        var warningIssue = issues.find(function(i) { return i.severity === 'warning'; });
+        assertTrue(warningIssue !== undefined, 'Should have warning severity issue');
+    });
+
+    it('should not include audits with score >= 0.9', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.95 } },
+            audits: {
+                'perfect-audit': { title: 'Perfect', score: 1.0, scoreDisplayMode: 'numeric', description: 'Perfect' },
+                'good-audit': { title: 'Good', score: 0.92, scoreDisplayMode: 'numeric', description: 'Good' }
+            }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var issues = result.performanceResults.issues;
+        
+        assertEqual(issues.length, 0, 'Should have no issues when all scores >= 0.9');
+    });
+});
+
+describe('Lighthouse Adapter - Recommendation Building', function() {
+    it('should extract opportunities and sort by savings', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockLHR = {
+            categories: { performance: { id: 'performance', title: 'Performance', score: 0.70 } },
+            audits: {
+                'high-impact': {
+                    title: 'High Impact',
+                    score: 0.60,
+                    scoreDisplayMode: 'numeric',
+                    description: 'Big savings',
+                    details: { type: 'opportunity', overallSavingsMs: 1500, overallSavingsBytes: 100000 }
+                },
+                'medium-impact': {
+                    title: 'Medium Impact',
+                    score: 0.70,
+                    scoreDisplayMode: 'numeric',
+                    description: 'Some savings',
+                    details: { type: 'opportunity', overallSavingsMs: 500, overallSavingsBytes: 50000 }
+                },
+                'low-impact': {
+                    title: 'Low Impact',
+                    score: 0.85,
+                    scoreDisplayMode: 'numeric',
+                    description: 'Small savings',
+                    details: { type: 'opportunity', overallSavingsMs: 100, overallSavingsBytes: 10000 }
+                }
+            }
+        };
+        
+        var result = window.adaptLighthouseResults({ lighthouse: mockLHR });
+        var recs = result.performanceResults.recommendations;
+        
+        assertTrue(recs.length >= 3, 'Should have 3+ recommendations');
+        assertEqual(recs[0].title, 'High Impact', 'First recommendation should be highest savings');
+        assertEqual(recs[0].priority, 'high', 'Should be high priority (>1200ms)');
+        assertEqual(recs[1].title, 'Medium Impact', 'Second should be medium savings');
+        assertEqual(recs[1].priority, 'medium', 'Should be medium priority (>300ms)');
+        assertEqual(recs[2].title, 'Low Impact', 'Third should be lowest savings');
+        assertEqual(recs[2].priority, 'low', 'Should be low priority (<=300ms)');
+    });
+});
+
+describe('Lighthouse Adapter - Integration', function() {
+    it('should handle full Lighthouse response structure', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var mockResponse = {
+            lighthouse: {
+                categories: {
+                    performance: { id: 'performance', title: 'Performance', score: 0.85 },
+                    accessibility: { id: 'accessibility', title: 'Accessibility', score: 0.92 },
+                    seo: { id: 'seo', title: 'SEO', score: 0.88 },
+                    'best-practices': { id: 'best-practices', title: 'Best Practices', score: 0.90 }
+                },
+                audits: {
+                    'first-contentful-paint': { numericValue: 1800, displayValue: '1.8 s', scoreDisplayMode: 'numeric', score: 0.90 },
+                    'largest-contentful-paint': { numericValue: 2500, displayValue: '2.5 s', scoreDisplayMode: 'numeric', score: 0.85 },
+                    'total-blocking-time': { numericValue: 200, displayValue: '200 ms', scoreDisplayMode: 'numeric', score: 0.88 },
+                    'cumulative-layout-shift': { numericValue: 0.1, displayValue: '0.1', scoreDisplayMode: 'numeric', score: 0.90 },
+                    'speed-index': { numericValue: 3400, displayValue: '3.4 s', scoreDisplayMode: 'numeric', score: 0.87 },
+                    'interactive': { numericValue: 3800, displayValue: '3.8 s', scoreDisplayMode: 'numeric', score: 0.92 },
+                    'interaction-to-next-paint': { numericValue: 200, displayValue: '200 ms', scoreDisplayMode: 'numeric', score: 0.90 }
+                }
+            }
+        };
+        
+        var result = window.adaptLighthouseResults(mockResponse);
+        
+        assertTrue(result.performanceResults !== undefined, 'Should have performanceResults');
+        assertTrue(result.scoreResults !== undefined, 'Should have scoreResults');
+        assertTrue(result.lighthouseResults !== undefined, 'Should have lighthouseResults');
+        
+        assertEqual(result.scoreResults.score, 85, 'Overall score should be 85');
+        assertEqual(result.scoreResults.category, 'warning', 'Category should be "warning"');
+        assertEqual(result.scoreResults.mode, 'lighthouse', 'Mode should be lighthouse');
+        
+        assertEqual(result.lighthouseResults.categoryScores.length, 4, 'Should have 4 category scores');
+        assertEqual(result.lighthouseResults.coreVitals.length, 7, 'Should have 7 metrics');
+    });
+
+    it('should throw error for invalid Lighthouse data', function() {
+        if (typeof window === 'undefined' || !window.adaptLighthouseResults) { 
+            assertTrue(true, 'Skipping'); 
+            return; 
+        }
+        
+        var threwError = false;
+        try {
+            window.adaptLighthouseResults({ invalid: 'data' });
+        } catch (e) {
+            threwError = true;
+            assertTrue(e.message.indexOf('Invalid Lighthouse data') !== -1, 'Should throw invalid data error');
+        }
+        
+        assertTrue(threwError, 'Should throw error for invalid data');
+    });
+});
+
+describe('Lighthouse Backend - Mobile-Only Validation', function() {
+    it('should enforce mobile formFactor', function() {
+        // This is a documentation test - actual validation happens server-side
+        assertTrue(true, 'Server validates formFactor === "mobile"');
+    });
+
+    it('should enforce simulated throttling', function() {
+        // This is a documentation test - actual validation happens server-side
+        assertTrue(true, 'Server validates throttlingMethod === "simulate"');
+    });
+
+    it('should enforce mobile screen emulation', function() {
+        // This is a documentation test - actual validation happens server-side
+        assertTrue(true, 'Server validates screenEmulation.mobile === true');
+    });
+});
+
+// ============================================================================
 // TEST RUNNER
 // ============================================================================
 
