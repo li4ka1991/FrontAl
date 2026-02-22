@@ -15,7 +15,8 @@ You focus on CSS architecture, naming conventions, responsive design, and perfor
 - Mobile First
 - Use system fonts
 - Avoid using "rem" or "em"
-- Write single-line selectors and properties instead of block style CSS
+- Write single-line selectors and properties instead of block style CSS. Exeption: keep block style for CSS animations'keyframes
+- Leave media query alone on the line 
 
 ### General Requirements
 

@@ -58,6 +58,19 @@ app.options('/fetch-resources', cors(corsOptions));
 
 app.use(express.json({ limit: MAX_BODY_SIZE }));
 
+// Root route - status check
+app.get('/', (req, res) => {
+    res.json({
+        service: 'FrontAl Lighthouse Backend',
+        status: 'running',
+        version: '1.0.0',
+        endpoints: [
+            { method: 'POST', path: '/audit', description: 'Run Lighthouse audit on a URL' },
+            { method: 'POST', path: '/fetch-resources', description: 'Extract HTML/CSS/JS from a URL' }
+        ]
+    });
+});
+
 app.post('/fetch-resources', async (req, res) => {
     const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
 
