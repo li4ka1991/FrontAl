@@ -54,8 +54,26 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('/audit', cors(corsOptions));
+app.options('/fetch-resources', cors(corsOptions));
 
 app.use(express.json({ limit: MAX_BODY_SIZE }));
+
+app.post('/fetch-resources', async (req, res) => {
+    const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+
+    if (!isValidHttpUrl(url)) {
+        return res.status(400).json({ error: 'Invalid URL. Use http or https.' });
+    }
+
+    try {
+        const resources = await fetchPageResources(url);
+        return res.json(resources);
+    } catch (error) {
+        return res.status(500).json({
+            error: error.message || 'Failed to fetch resources'
+        });
+    }
+});
 
 app.post('/audit', async (req, res) => {
     const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
@@ -206,4 +224,71 @@ function summarizeLighthouse(lhr) {
 
 function createRequestId() {
     return Math.random().toString(36).slice(2, 10);
+}
+
+async function fetchPageResources(url) {
+    const https = require('https');
+    const http = require('http');
+    
+    // Fetch main HTML
+    const htmlContent = await fetchUrl(url);
+    
+    const resources = {
+        html: htmlContent,
+        css: '',
+        js: ''
+    };
+
+    // Extract inline and linked CSS
+    const styleTagRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    let match;
+    while ((match = styleTagRegex.exec(htmlContent)) !== null) {
+        resources.css += match[1] + '\n\n';
+    }
+
+    // Extract inline and linked JS
+    const scriptTagRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+    while ((match = scriptTagRegex.exec(htmlContent)) !== null) {
+        const scriptContent = match[1].trim();
+        if (scriptContent) {
+            resources.js += scriptContent + '\n\n';
+        }
+    }
+
+    return resources;
+}
+
+function fetchUrl(url) {
+    return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const lib = urlObj.protocol === 'https:' ? require('https') : require('http');
+        
+        const options = {
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'FrontAl-Analyzer/1.0'
+            }
+        };
+
+        lib.get(url, options, (response) => {
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                // Handle redirects
+                resolve(fetchUrl(response.headers.location));
+                return;
+            }
+
+            if (response.statusCode !== 200) {
+                reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+                return;
+            }
+
+            let data = '';
+            response.setEncoding('utf8');
+            response.on('data', chunk => data += chunk);
+            response.on('end', () => resolve(data));
+            response.on('error', reject);
+        }).on('error', reject).on('timeout', () => {
+            reject(new Error('Request timeout'));
+        });
+    });
 }

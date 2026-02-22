@@ -69,4 +69,51 @@
     }
 
     window.fetchLighthouseAudit = fetchLighthouseAudit;
+
+    async function fetchPageResources(url, options = {}) {
+        const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch('http://localhost:3000/fetch-resources', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ url }),
+                cache: 'no-store',
+                credentials: 'omit',
+                signal: controller.signal
+            });
+
+            const payload = await parseResponse(response);
+
+            if (!response.ok) {
+                const message = payload && payload.error ? payload.error : 'Resource fetch failed.';
+                throw buildError(message, 'http_error', response.status);
+            }
+
+            if (!payload || typeof payload !== 'object') {
+                throw buildError('Unexpected response from server.', 'invalid_response');
+            }
+
+            return payload;
+        } catch (err) {
+            if (err && err.name === 'AbortError') {
+                throw buildError('Resource fetch timed out.', 'timeout');
+            }
+
+            if (err && err.code) {
+                throw err;
+            }
+
+            throw buildError('Network error while fetching resources.', 'network_error');
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    window.fetchPageResources = fetchPageResources;
 })();

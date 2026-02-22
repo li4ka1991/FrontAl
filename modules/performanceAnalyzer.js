@@ -119,6 +119,61 @@ function analyzeHtmlPerformance(files, isMultiFile, results) {
                 suggestion: 'Consider inlining critical CSS and lazy-loading non-critical styles.'
             });
         }
+
+        var preloadLinks = content.match(/<link[^>]+rel=["']preload["'][^>]*>/g) || [];
+        var criticalResources = externalScripts.length + cssLinks.length;
+        
+        if (criticalResources > 0 && preloadLinks.length === 0) {
+            results.issues.push({
+                severity: 'info',
+                title: 'Missing Resource Prioritization',
+                description: 'No preload hints found' + fileInfo + '. Consider preloading critical assets.',
+                file: file.name,
+                suggestion: 'Add <link rel="preload"> for critical CSS, fonts, or scripts to improve load performance.'
+            });
+        }
+
+        var nonAsyncCss = cssLinks.filter(function(link) {
+            return !link.includes('media="print"') && !link.includes('onload=');
+        });
+        
+        if (nonAsyncCss.length > 1) {
+            results.issues.push({
+                severity: 'info',
+                title: 'CSS Delivery Not Optimized',
+                description: nonAsyncCss.length + ' stylesheets loaded synchronously' + fileInfo + '.',
+                file: file.name,
+                suggestion: 'Consider loading non-critical CSS asynchronously using media="print" onload="this.media=\'all\'" technique.'
+            });
+        }
+
+        var inlineSvgs = content.match(/<svg[\s\S]*?<\/svg>/gi) || [];
+        var largeSvgs = inlineSvgs.filter(function(svg) { return svg.length > 5000; });
+        
+        if (largeSvgs.length > 0) {
+            results.issues.push({
+                severity: 'warning',
+                title: 'Large Inline SVGs',
+                description: 'Found ' + largeSvgs.length + ' large inline SVG(s)' + fileInfo + ' (>5KB each). Large SVGs increase DOM size and parsing time.',
+                file: file.name,
+                suggestion: 'Move large SVGs to external files and reference via <img> or CSS background-image.'
+            });
+        }
+
+        var imgTags = content.match(/<img[^>]*>/gi) || [];
+        var imgsWithoutDimensions = imgTags.filter(function(img) {
+            return !img.includes('width=') || !img.includes('height=');
+        });
+        
+        if (imgsWithoutDimensions.length > 0) {
+            results.issues.push({
+                severity: 'warning',
+                title: 'Images Missing Dimensions',
+                description: 'Found ' + imgsWithoutDimensions.length + ' img tag(s) without width/height attributes' + fileInfo + '. Causes layout shifts (CLS).',
+                file: file.name,
+                suggestion: 'Add explicit width and height attributes to prevent cumulative layout shift.'
+            });
+        }
     });
 }
 
@@ -145,7 +200,7 @@ function analyzeCssPerformance(files, isMultiFile, results) {
                 title: 'CSS @import Usage',
                 description: 'Found ' + imports.length + ' @import statement(s)' + fileInfo + '. These prevent parallel downloads.',
                 file: file.name,
-                suggestion: 'Use &lt;link&gt; tags instead of @import for better performance.'
+                suggestion: 'Use <link> tags instead of @import for better performance.'
             });
         }
 
@@ -178,9 +233,31 @@ function analyzeCssPerformance(files, isMultiFile, results) {
 }
 
 function analyzeJsPerformance(files, isMultiFile, results) {
+    var totalJsSize = files.reduce(function(sum, f) { return sum + f.content.length; }, 0);
+    
+    if (totalJsSize > 100000) {
+        results.issues.push({
+            severity: 'warning',
+            title: 'Excessive JavaScript Bundle Size',
+            description: 'Total JavaScript size is ' + Math.round(totalJsSize / 1024) + 'KB. Large bundles increase parse and execution time.',
+            file: 'Multiple files',
+            suggestion: 'Use code splitting, tree shaking, and dynamic imports to reduce bundle size.'
+        });
+    }
+
     files.forEach(function(file) {
         var content = file.content;
         var fileInfo = isMultiFile ? ' (in ' + file.name + ')' : '';
+
+        if (file.content.length > 50000) {
+            results.issues.push({
+                severity: 'warning',
+                title: 'Large JavaScript File',
+                description: file.name + ' is ' + Math.round(file.content.length / 1024) + 'KB. Large scripts increase parse time.',
+                file: file.name,
+                suggestion: 'Split into smaller modules and use dynamic imports for non-critical code.'
+            });
+        }
 
         var syncXHR = content.match(/\.open\s*\(\s*["'][^"']+["']\s*,\s*["'][^"']+["']\s*,\s*false\s*\)/g) || [];
         if (syncXHR.length > 0) {
@@ -294,7 +371,7 @@ function generateRecommendations(files, results) {
     results.recommendations.push({
         priority: 'medium',
         title: 'Implement Resource Hints',
-        description: 'Use &lt;link rel="preload"&gt; for critical resources and &lt;link rel="prefetch"&gt; for future navigation.',
+        description: 'Use <link rel="preload"> for critical resources and <link rel="prefetch"> for future navigation.',
         impact: 'Medium - Reduces perceived load time'
     });
 

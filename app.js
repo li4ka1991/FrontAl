@@ -98,7 +98,7 @@ function switchMode(mode) {
     // Clear results
     resultsSection.classList.add('hidden');
     resultsSection.setAttribute('aria-busy', 'false');
-    clearErrorCard();
+    clearResults();
 }
 
 function handleDragOver(e) {
@@ -261,7 +261,7 @@ async function runStaticAnalysis() {
 }
 
 async function runLighthouseAnalysis() {
-    setResultsMode('lighthouse');
+    setResultsMode('combined');
     const url = getUrlToAudit();
     if (!url) {
         renderErrorCard('Please enter a valid URL starting with http or https.');
@@ -270,18 +270,68 @@ async function runLighthouseAnalysis() {
     }
 
     lastAuditUrl = url;
-    setLoadingState(true, 'Running Lighthouse...');
+    setLoadingState(true, 'Running Lighthouse & Analyzing...');
 
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-        const rawResults = await fetchLighthouseAudit(url);
+        // Fetch both Lighthouse audit and page resources in parallel
+        const [rawResults, pageResources] = await Promise.all([
+            fetchLighthouseAudit(url),
+            fetchPageResources(url).catch(err => {
+                console.warn('Failed to fetch page resources:', err);
+                return null;
+            })
+        ]);
+
         const adapted = adaptLighthouseResults(rawResults);
+
+        // Run static analysis if we successfully fetched resources
+        let staticAnalysisResults = {};
+        if (pageResources) {
+            const filesToAnalyze = [];
+            
+            if (pageResources.html) {
+                filesToAnalyze.push({
+                    name: 'index.html',
+                    type: 'html',
+                    content: pageResources.html,
+                    size: pageResources.html.length
+                });
+            }
+            
+            if (pageResources.css) {
+                filesToAnalyze.push({
+                    name: 'styles.css',
+                    type: 'css',
+                    content: pageResources.css,
+                    size: pageResources.css.length
+                });
+            }
+            
+            if (pageResources.js) {
+                filesToAnalyze.push({
+                    name: 'script.js',
+                    type: 'js',
+                    content: pageResources.js,
+                    size: pageResources.js.length
+                });
+            }
+
+            if (filesToAnalyze.length > 0) {
+                staticAnalysisResults = {
+                    sizeResults: analyzeSizes(filesToAnalyze),
+                    duplicationResults: detectDuplication(filesToAnalyze)
+                };
+            }
+        }
 
         renderResults({
             performanceResults: adapted.performanceResults,
             scoreResults: adapted.scoreResults,
-            lighthouseResults: adapted.lighthouseResults
+            lighthouseResults: adapted.lighthouseResults,
+            sizeResults: staticAnalysisResults.sizeResults,
+            duplicationResults: staticAnalysisResults.duplicationResults
         });
 
         showResultsSection();
@@ -333,11 +383,25 @@ function setResultsMode(mode) {
     const sizeCard = document.getElementById('sizeResults').closest('.result-card');
     const duplicationCard = document.getElementById('duplicationResults').closest('.result-card');
 
-    const isLighthouse = mode === 'lighthouse';
-    sizeCard.classList.toggle('hidden', isLighthouse);
-    duplicationCard.classList.toggle('hidden', isLighthouse);
-    lighthouseScoresCard.classList.toggle('hidden', !isLighthouse);
-    coreVitalsCard.classList.toggle('hidden', !isLighthouse);
+    if (mode === 'lighthouse') {
+        // Lighthouse only (old behavior, kept for compatibility)
+        sizeCard.classList.add('hidden');
+        duplicationCard.classList.add('hidden');
+        lighthouseScoresCard.classList.remove('hidden');
+        coreVitalsCard.classList.remove('hidden');
+    } else if (mode === 'combined') {
+        // Show all cards for URL analysis
+        sizeCard.classList.remove('hidden');
+        duplicationCard.classList.remove('hidden');
+        lighthouseScoresCard.classList.remove('hidden');
+        coreVitalsCard.classList.remove('hidden');
+    } else {
+        // Static analysis only
+        sizeCard.classList.remove('hidden');
+        duplicationCard.classList.remove('hidden');
+        lighthouseScoresCard.classList.add('hidden');
+        coreVitalsCard.classList.add('hidden');
+    }
 }
 
 function showResultsSection() {
@@ -383,6 +447,45 @@ function clearErrorCard() {
     if (errorCard) {
         errorCard.classList.add('hidden');
     }
+}
+
+function clearResults() {
+    // Clear all result containers
+    const resultContainers = [
+        'sizeResults',
+        'duplicationResults',
+        'performanceResults',
+        'recommendationsResults',
+        'lighthouseScoresResults',
+        'coreVitalsResults'
+    ];
+
+    resultContainers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = '';
+        }
+    });
+
+    // Reset overall score
+    const scoreValue = document.querySelector('.score-value');
+    if (scoreValue) {
+        scoreValue.textContent = '--';
+    }
+    const scoreCircle = document.querySelector('.score-circle');
+    if (scoreCircle) {
+        scoreCircle.classList.remove('good', 'warning', 'danger');
+    }
+
+    // Hide Lighthouse cards
+    if (lighthouseScoresCard) {
+        lighthouseScoresCard.classList.add('hidden');
+    }
+    if (coreVitalsCard) {
+        coreVitalsCard.classList.add('hidden');
+    }
+
+    clearErrorCard();
 }
 
 function renderResults({ sizeResults, duplicationResults, performanceResults, scoreResults, lighthouseResults }) {

@@ -166,7 +166,10 @@ function analyzeCssDuplication(files, results) {
             var propName = match[1].trim();
             if (propName.indexOf('--') === 0) continue;
             
-            var prop = propName + ': ' + match[2].trim();
+            var propValue = match[2].trim();
+            if (propValue.indexOf('var(') !== -1) continue;
+            
+            var prop = propName + ': ' + propValue;
             if (!properties[prop]) {
                 properties[prop] = { count: 0, files: [] };
             }

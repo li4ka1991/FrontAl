@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FrontAl - Frontend Performance & Bundle Analyzer</title>
+    <link rel="preload" href="styles.css" as="style">    
     <link rel="stylesheet" href="styles.css">
-    
 </head>
 <body>
     <div class="container">
@@ -87,6 +87,23 @@
                 </div>
 
                 <div class="results-grid">
+                    <div class="result-card-group">
+                        <div class="result-card lighthouse-card hidden" id="lighthouseScoresCard">
+                            <h3>🧭 Lighthouse Scores</h3>
+                            <div id="lighthouseScoresResults" class="result-content"></div>
+                        </div>
+
+                        <div class="result-card error-card hidden" id="errorCard">
+                            <h3>🚫 Audit Error</h3>
+                            <div id="errorResults" class="result-content"></div>
+                        </div>
+
+                        <div class="result-card lighthouse-card hidden" id="coreVitalsCard">
+                            <h3>🧪 Lighthouse Performance Metrics</h3>
+                            <div id="coreVitalsResults" class="result-content"></div>
+                        </div>
+                    </div>
+
                     <div class="result-card">
                         <h3>📦 Bundle Size & Composition</h3>
                         <div id="sizeResults" class="result-content"></div>
@@ -97,16 +114,6 @@
                         <div id="duplicationResults" class="result-content"></div>
                     </div>
 
-                    <div class="result-card lighthouse-card hidden" id="lighthouseScoresCard">
-                        <h3>🧭 Lighthouse Scores</h3>
-                        <div id="lighthouseScoresResults" class="result-content"></div>
-                    </div>
-
-                    <div class="result-card lighthouse-card hidden" id="coreVitalsCard">
-                        <h3>🧪 Performance Metrics</h3>
-                        <div id="coreVitalsResults" class="result-content"></div>
-                    </div>
-
                     <div class="result-card">
                         <h3>⚡ Performance Issues</h3>
                         <div id="performanceResults" class="result-content"></div>
@@ -115,11 +122,6 @@
                     <div class="result-card result-card-recommendations">
                         <h3>💡 Recommendations</h3>
                         <div id="recommendationsResults" class="result-content"></div>
-                    </div>
-
-                    <div class="result-card error-card hidden" id="errorCard">
-                        <h3>🚫 Audit Error</h3>
-                        <div id="errorResults" class="result-content"></div>
                     </div>
                 </div>
             </section>

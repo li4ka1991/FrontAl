@@ -46,7 +46,6 @@ body {
 header {
     text-align: center;
     margin-bottom: 2rem;
-    padding: 0.5rem 0;
 }
 
 .logo h1 {
@@ -261,7 +260,7 @@ header {
 }
 
 textarea {
-    min-height: 250px;
+    min-height: 200px;
     padding: 1rem;
     border: 2px solid var(--border);
     border-radius: 12px;
@@ -412,8 +411,30 @@ textarea:focus {
 
 .results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    grid-template-columns: repeat(2, calc(50% - 1rem));
     gap: 2rem;
+}
+
+.result-card-group {
+    padding: 2rem;
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px var(--shadow);
+    border-top: 4px solid var(--info);
+    grid-column-start: 1;
+    display: grid;
+    grid-template-columns: repeat(2, calc(50% - 1rem));
+    gap: 2rem;
+    align-items: flex-start;
+}
+
+.result-card-group .result-card {
+    padding: 0;
+    box-shadow: none;
+}
+
+.result-card-group .result-card:hover {
+    transform: none;
 }
 
 .result-card {
@@ -422,6 +443,10 @@ textarea:focus {
     padding: 2rem;
     box-shadow: 0 10px 30px var(--shadow);
     transition: transform 0.3s ease;
+}
+
+.result-card.error-card {
+    padding: 2rem;
 }
 
 .result-card:hover {
@@ -440,10 +465,6 @@ textarea:focus {
     color: var(--text-secondary);
 }
 
-.lighthouse-card {
-    border-top: 4px solid var(--info);
-}
-
 .lighthouse-scores {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -454,13 +475,15 @@ textarea:focus {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.9rem;
+    padding: 0.8rem 0.5rem;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: rgba(59, 130, 246, 0.06);
 }
 
 .score-ring {
+    flex-basis: 64px;
+    flex-shrink: 0;
     width: 64px;
     height: 64px;
     border-radius: 50%;
@@ -468,6 +491,7 @@ textarea:focus {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     font-weight: 700;
 }
 
@@ -500,6 +524,7 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+    line-height: 1.2;
 }
 
 .score-labels span:first-child {
@@ -521,22 +546,24 @@ textarea:focus {
 .vital-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     padding: 0.75rem 1rem;
     border-radius: 12px;
     border: 1px solid var(--border);
     background: rgba(59, 130, 246, 0.05);
-    gap: 1rem;
 }
 
 .vital-label {
     font-weight: 600;
     color: var(--text-primary);
+    flex-basis: 45%;
+    line-height: 1.2;
 }
 
 .vital-value {
     font-weight: 700;
     color: var(--text-primary);
+    margin-left: 15px;
 }
 
 .vital-badge {
@@ -546,6 +573,7 @@ textarea:focus {
     font-weight: 700;
     text-transform: uppercase;
     color: white;
+    margin-left: auto;
 }
 
 .vital-good {
@@ -676,7 +704,8 @@ textarea:focus {
     border-radius: 6px;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.85rem;
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 250px;
 }
 
 /* Recommendations */
@@ -796,9 +825,18 @@ footer {
     .logo h1 {
         font-size: 2rem;
     }
+
+    .results-grid > .result-card {
+        margin-top: 2rem;
+    }
     
-    .results-grid {
-        grid-template-columns: 1fr;
+    .results-grid,
+    .result-card-group {
+        display: block;
+    }
+
+    .result-card-group {
+       padding: 0;
     }
     
     .paste-container {
@@ -820,7 +858,38 @@ footer {
     .paste-container {
         display: block;
     }
+    
     .code-input-group + .code-input-group {
         margin-top: 10px; 
+    }
+    
+    .result-card-group {
+        grid-column-end: 3;
+    }
+    
+    .result-card.error-card {
+        grid-column-start: 1;
+        grid-column-end: 2;
+        border-left: 0;
+    }
+    
+    .result-card-group .result-card:last-child {
+        grid-row-start: 1;
+        grid-row-end: 3;
+        grid-column-start: 2;
+    }
+}
+
+@media (min-width: 1024px) {
+    .lighthouse-scores {
+        grid-template-columns: repeat(2, calc(50% - 0.5rem));
+    }
+}
+
+@media (min-width: 1200px) {
+    .result-card-group {
+        padding: 2rem 4rem;
+        grid-template-columns: repeat(2, calc(50% - 3rem));
+        gap: 2rem 6rem;
     }
 }
