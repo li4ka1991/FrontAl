@@ -86,6 +86,39 @@ This test suite provides comprehensive coverage for:
   - Score-based messages
   - Component-specific advice
 
+### 5. **Lighthouse Adapter Tests**
+- **Metric Extraction**:
+  - Extracts 7 Core Web Vitals metrics
+  - FCP, LCP, TBT, CLS, Speed Index, TTI, INP
+  - Metric rating thresholds (good/warning/danger)
+  
+- **Category Scores**:
+  - Performance, Accessibility, SEO, Best Practices
+  - Score conversion (0-1 → 0-100)
+  - Status mapping (good: 90+, warning: 70+, danger: <70)
+  
+- **Issue Building**:
+  - Extracts failing audits (score < 0.9)
+  - Severity mapping (error: <0.5, warning: <0.9)
+  - Strips markdown from descriptions
+  - Includes display values
+  
+- **Recommendation Building**:
+  - Extracts opportunities from audits
+  - Sorts by savings (overallSavingsMs)
+  - Priority levels (high: >1200ms, medium: >300ms, low: ≤300ms)
+  - Includes byte and time savings
+  
+- **Integration Tests**:
+  - Full Lighthouse response handling
+  - Error handling for invalid data
+  - Mode detection ('lighthouse')
+  
+- **Backend Validation** (Documentation):
+  - Mobile formFactor enforcement
+  - Simulated throttling requirement
+  - Mobile screen emulation validation
+
 ## Running the Tests
 
 ### Option 1: Browser (Recommended)
@@ -124,6 +157,13 @@ tests/
 └── README.md           # This file
 ```
 
+**Modules under test:**
+- `sizeAnalyzer.js` - Bundle size calculations and thresholds
+- `duplicationDetector.js` - Code pattern and duplication detection
+- `performanceAnalyzer.js` - Static performance anti-patterns
+- `scorer.js` - Score calculation and grading logic
+- `lighthouseAdapter.js` - Lighthouse data normalization and adaptation
+
 ## Test Framework
 
 Custom lightweight test framework with:
@@ -147,7 +187,7 @@ Custom lightweight test framework with:
 
 All tests are deterministic and should **pass 100%** every time with the same inputs.
 
-Current test count: **100+ test cases**
+Current test count: **120+ test cases** (including Lighthouse adapter tests)
 
 ## Verification Checklist
 
@@ -171,6 +211,11 @@ Current test count: **100+ test cases**
 - Check if module implementations match expected behavior
 - Verify threshold values haven't changed
 - Review console output for specific assertion failures
+
+**Lighthouse tests skipped:**
+- Lighthouse tests auto-skip if `lighthouseAdapter.js` is not loaded
+- By default, test-runner.html includes all modules, so Lighthouse tests should run
+- If skipping: Check that `<script src="../modules/lighthouseAdapter.js"></script>` is present
 
 **Browser compatibility:**
 - Modern browsers (Chrome, Firefox, Safari, Edge)
@@ -203,6 +248,7 @@ describe('New Feature Tests', function() {
 - Tests run entirely in the browser
 - All test data is mocked (no network requests)
 - Deterministic: same input always produces same output
+- **Lighthouse tests**: Auto-skip if `lighthouseAdapter.js` is not loaded (graceful degradation)
 
 ## License
 
