@@ -1283,9 +1283,9 @@ describe('Scorer - calculateScore() Integration', function() {
 
     it('should return grade A for score 90', function() {
         var sizeResults = {
-            totalSize: 300 * 1024, // -10 points
-            breakdown: { html: 0, css: 0, js: 300 * 1024 },
-            percentages: { html: '0', css: '0', js: '100' }
+            totalSize: 200 * 1024, // Under 250KB, no deduction
+            breakdown: { html: 100 * 1024, css: 50 * 1024, js: 50 * 1024 },
+            percentages: { html: '50', css: '25', js: '25' }
         };
         var dupeResults = { duplicates: [] };
         var perfResults = { issues: [] };
