@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FrontAl analyzes HTML, CSS, and JavaScript for bundle size, duplication, and performance issues. Supports paste, file upload, and URL audits (Lighthouse + static analysis).">
     <title>FrontAl - Frontend Performance & Bundle Analyzer</title>
     <link rel="preload" href="styles.css" as="style">    
     <link rel="stylesheet" href="styles.css">
@@ -18,7 +19,7 @@
 
         <main>
             <section class="input-section">
-                <div class="mode-toggle" role="tablist" aria-label="Input mode">
+                <div class="mode-toggle" role="group" aria-label="Input mode">
                     <button class="mode-btn active" type="button" data-mode="paste" aria-pressed="true">Paste Code</button>
                     <button class="mode-btn" type="button" data-mode="upload" aria-pressed="false">Upload Files</button>
                     <button class="mode-btn" type="button" data-mode="url" aria-pressed="false">Audit URL</button>
@@ -30,32 +31,32 @@
                             <label for="htmlInput">
                                 <span class="file-type-badge html">HTML</span>
                             </label>
-                            <textarea id="htmlInput" placeholder="Paste your HTML code here..."></textarea>
+                            <textarea id="htmlInput" placeholder="Paste your HTML code here..." spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
                         </div>
                         <div class="code-input-group">
                             <label for="cssInput">
                                 <span class="file-type-badge css">CSS</span>
                             </label>
-                            <textarea id="cssInput" placeholder="Paste your CSS code here..."></textarea>
+                            <textarea id="cssInput" placeholder="Paste your CSS code here..." spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
                         </div>
                         <div class="code-input-group">
                             <label for="jsInput">
                                 <span class="file-type-badge js">JavaScript</span>
                             </label>
-                            <textarea id="jsInput" placeholder="Paste your JavaScript code here..."></textarea>
+                            <textarea id="jsInput" placeholder="Paste your JavaScript code here..." spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
                         </div>
                     </div>
                 </div>
 
                 <div class="input-area upload-mode hidden">
-                    <div class="drop-zone" id="dropZone" tabindex="0">
+                    <div class="drop-zone" id="dropZone" tabindex="0" aria-label="File upload" aria-describedby="dropText dropSubtext">
                         <div class="drop-zone-content">
-                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" focusable="false">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                             </svg>
-                            <p class="drop-text">Drag & drop files here</p>
-                            <p class="drop-subtext">or click to browse</p>
-                            <input type="file" id="fileInput" class="file-input" multiple accept=".html,.css,.js,.htm">
+                            <p class="drop-text" id="dropText">Drag & drop files here</p>
+                            <p class="drop-subtext" id="dropSubtext">or click to browse</p>
+                            <input type="file" id="fileInput" class="file-input" multiple accept=".html,.css,.js,.htm" aria-label="Choose files to analyze">
                         </div>
                         <div class="file-list" id="fileList"></div>
                     </div>
@@ -69,15 +70,15 @@
                     </div>
                 </div>
 
-                <button class="analyze-btn" id="analyzeBtn">
+                <button class="analyze-btn" id="analyzeBtn" type="button">
                     <span class="btn-text">Analyze Code</span>
-                    <span class="btn-icon">🔍</span>
+                    <span class="btn-icon" aria-hidden="true">🔍</span>
                 </button>
             </section>
 
-            <section class="results-section hidden" id="resultsSection" aria-live="polite" aria-busy="false">
+            <section class="results-section hidden" id="resultsSection" role="region" aria-labelledby="resultsHeading" aria-live="polite" aria-busy="false" tabindex="-1">
                 <div class="results-header">
-                    <h2>Analysis Results</h2>
+                    <h2 id="resultsHeading">Analysis Results</h2>
                     <div class="overall-score" id="overallScore">
                         <div class="score-circle">
                             <span class="score-value">--</span>
@@ -126,8 +127,6 @@
                 </div>
             </section>
         </main>
-
-        <footer></footer>
     </div>
 
     <script src="modules/sizeAnalyzer.js"></script>
