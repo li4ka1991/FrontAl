@@ -1,4 +1,8 @@
 /**
+ * This file was edited with the help of JS Expert AI assistant. 
+ */
+
+/**
  * FrontAl - Frontend Performance & Bundle Analyzer
  * Main application logic
  */
@@ -28,24 +32,50 @@ const htmlInput = document.getElementById('htmlInput');
 const cssInput = document.getElementById('cssInput');
 const jsInput = document.getElementById('jsInput');
 
+function addListenerIfPresent(element, eventName, handler) {
+    if (!element) {
+        return;
+    }
+    element.addEventListener(eventName, handler);
+}
+
+function focusElementIfPresent(element) {
+    if (element && typeof element.focus === 'function') {
+        element.focus();
+    }
+}
+
+function toAnalysisFile(name, type, content) {
+    return {
+        name,
+        type,
+        content,
+        size: content.length
+    };
+}
+
 function setupEventListeners() {
     // Mode switching
     modeButtons.forEach(button => {
-        button.addEventListener('click', () => switchMode(button.dataset.mode));
+        addListenerIfPresent(button, 'click', () => switchMode(button.dataset.mode));
     });
 
     // File upload
-    dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', handleDragOver);
-    dropZone.addEventListener('dragleave', handleDragLeave);
-    dropZone.addEventListener('drop', handleDrop);
-    fileInput.addEventListener('change', handleFileSelect);
+    addListenerIfPresent(dropZone, 'click', () => {
+        if (fileInput) {
+            fileInput.click();
+        }
+    });
+    addListenerIfPresent(dropZone, 'dragover', handleDragOver);
+    addListenerIfPresent(dropZone, 'dragleave', handleDragLeave);
+    addListenerIfPresent(dropZone, 'drop', handleDrop);
+    addListenerIfPresent(fileInput, 'change', handleFileSelect);
 
     // Analyze button
-    analyzeBtn.addEventListener('click', runAnalysis);
+    addListenerIfPresent(analyzeBtn, 'click', runAnalysis);
 
     // URL input
-    urlInput.addEventListener('keydown', (event) => {
+    addListenerIfPresent(urlInput, 'keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             runAnalysis();
@@ -59,9 +89,15 @@ function switchMode(mode) {
     currentMode = mode;
 
     // Toggle input areas
-    pasteMode.classList.toggle('hidden', mode !== 'paste');
-    uploadMode.classList.toggle('hidden', mode !== 'upload');
-    urlMode.classList.toggle('hidden', mode !== 'url');
+    if (pasteMode) {
+        pasteMode.classList.toggle('hidden', mode !== 'paste');
+    }
+    if (uploadMode) {
+        uploadMode.classList.toggle('hidden', mode !== 'upload');
+    }
+    if (urlMode) {
+        urlMode.classList.toggle('hidden', mode !== 'url');
+    }
 
     modeButtons.forEach(button => {
         const isActive = button.dataset.mode === mode;
@@ -70,50 +106,58 @@ function switchMode(mode) {
     });
 
     if (mode === 'upload') {
-        htmlInput.value = '';
-        cssInput.value = '';
-        jsInput.value = '';
-        dropZone.focus();
+        if (htmlInput) htmlInput.value = '';
+        if (cssInput) cssInput.value = '';
+        if (jsInput) jsInput.value = '';
+        focusElementIfPresent(dropZone);
     }
 
     if (mode === 'paste') {
         currentFiles = [];
-        fileInput.value = '';
+        if (fileInput) fileInput.value = '';
         renderFileList();
-        htmlInput.focus();
+        focusElementIfPresent(htmlInput);
     }
 
     if (mode === 'url') {
         currentFiles = [];
-        fileInput.value = '';
+        if (fileInput) fileInput.value = '';
         renderFileList();
-        htmlInput.value = '';
-        cssInput.value = '';
-        jsInput.value = '';
-        urlInput.focus();
+        if (htmlInput) htmlInput.value = '';
+        if (cssInput) cssInput.value = '';
+        if (jsInput) jsInput.value = '';
+        focusElementIfPresent(urlInput);
     }
 
     setAnalyzeButtonLabel();
 
     // Clear results
-    resultsSection.classList.add('hidden');
-    resultsSection.setAttribute('aria-busy', 'false');
+    if (resultsSection) {
+        resultsSection.classList.add('hidden');
+        resultsSection.setAttribute('aria-busy', 'false');
+    }
     clearResults();
 }
 
 function handleDragOver(e) {
     e.preventDefault();
-    dropZone.classList.add('drag-over');
+    if (dropZone) {
+        dropZone.classList.add('drag-over');
+    }
 }
 
 function handleDragLeave(e) {
     e.preventDefault();
-    dropZone.classList.remove('drag-over');
+    if (dropZone) {
+        dropZone.classList.remove('drag-over');
+    }
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    dropZone.classList.remove('drag-over');
+    if (dropZone) {
+        dropZone.classList.remove('drag-over');
+    }
     
     const files = Array.from(e.dataTransfer.files);
     processFiles(files);
@@ -127,17 +171,18 @@ function handleFileSelect(e) {
 async function processFiles(files) {
     currentFiles = [];
 
-    for (const file of files) {
+    const parsedFiles = await Promise.all(files.map(async (file) => {
         const content = await readFileContent(file);
         const type = getFileType(file.name);
-        
-        currentFiles.push({
+        return {
             name: file.name,
             type,
             content,
             size: file.size
-        });
-    }
+        };
+    }));
+
+    currentFiles = parsedFiles;
 
     renderFileList();
 }
@@ -160,6 +205,10 @@ function getFileType(filename) {
 }
 
 function renderFileList() {
+    if (!fileList) {
+        return;
+    }
+
     if (currentFiles.length === 0) {
         fileList.innerHTML = '';
         return;
@@ -170,7 +219,7 @@ function renderFileList() {
             <div class="file-item-info">
                 <span class="file-type-badge ${file.type}">${file.type.toUpperCase()}</span>
                 <span class="file-item-name">${file.name}</span>
-                <span class="file-item-size">${formatBytes(file.size)}</span>
+                <span class="file-item-size">${formatFileSize(file.size)}</span>
             </div>
             <button class="remove-file-btn" onclick="removeFile(event, ${index})">✕</button>
         </div>
@@ -183,7 +232,7 @@ window.removeFile = function(event, index) {
     renderFileList();
 };
 
-function formatBytes(bytes) {
+function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB'];
@@ -208,29 +257,18 @@ async function runStaticAnalysis() {
     if (currentMode === 'upload') {
         filesToAnalyze = currentFiles;
     } else {
-        if (htmlInput.value.trim()) {
-            filesToAnalyze.push({
-                name: 'pasted.html',
-                type: 'html',
-                content: htmlInput.value,
-                size: htmlInput.value.length
-            });
+        const htmlValue = htmlInput ? htmlInput.value.trim() : '';
+        const cssValue = cssInput ? cssInput.value.trim() : '';
+        const jsValue = jsInput ? jsInput.value.trim() : '';
+
+        if (htmlValue) {
+            filesToAnalyze.push(toAnalysisFile('pasted.html', 'html', htmlValue));
         }
-        if (cssInput.value.trim()) {
-            filesToAnalyze.push({
-                name: 'pasted.css',
-                type: 'css',
-                content: cssInput.value,
-                size: cssInput.value.length
-            });
+        if (cssValue) {
+            filesToAnalyze.push(toAnalysisFile('pasted.css', 'css', cssValue));
         }
-        if (jsInput.value.trim()) {
-            filesToAnalyze.push({
-                name: 'pasted.js',
-                type: 'js',
-                content: jsInput.value,
-                size: jsInput.value.length
-            });
+        if (jsValue) {
+            filesToAnalyze.push(toAnalysisFile('pasted.js', 'js', jsValue));
         }
     }
 
@@ -302,30 +340,15 @@ async function runLighthouseAnalysis() {
             const filesToAnalyze = [];
             
             if (pageResources.html) {
-                filesToAnalyze.push({
-                    name: 'index.html',
-                    type: 'html',
-                    content: pageResources.html,
-                    size: pageResources.html.length
-                });
+                filesToAnalyze.push(toAnalysisFile('index.html', 'html', pageResources.html));
             }
             
             if (pageResources.css) {
-                filesToAnalyze.push({
-                    name: 'styles.css',
-                    type: 'css',
-                    content: pageResources.css,
-                    size: pageResources.css.length
-                });
+                filesToAnalyze.push(toAnalysisFile('styles.css', 'css', pageResources.css));
             }
             
             if (pageResources.js) {
-                filesToAnalyze.push({
-                    name: 'script.js',
-                    type: 'js',
-                    content: pageResources.js,
-                    size: pageResources.js.length
-                });
+                filesToAnalyze.push(toAnalysisFile('script.js', 'js', pageResources.js));
             }
 
             if (filesToAnalyze.length > 0) {
@@ -372,7 +395,7 @@ async function runLighthouseAnalysis() {
 }
 
 function getUrlToAudit() {
-    const value = urlInput.value.trim();
+    const value = urlInput ? urlInput.value.trim() : '';
     if (!value) {
         return '';
     }
@@ -389,14 +412,24 @@ function getUrlToAudit() {
 }
 
 function setAnalyzeButtonLabel() {
+    if (!analyzeBtn) {
+        return;
+    }
+
     const label = currentMode === 'url' ? 'Analyze URL' : 'Analyze Code';
     analyzeBtn.innerHTML = `<span class="btn-text">${label}</span><span class="btn-icon">🔍</span>`;
 }
 
 function setLoadingState(isLoading, text = 'Analyzing...') {
+    if (!analyzeBtn) {
+        return;
+    }
+
     analyzeBtn.classList.toggle('loading', isLoading);
     analyzeBtn.disabled = isLoading;
-    resultsSection.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    if (resultsSection) {
+        resultsSection.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    }
 
     if (isLoading) {
         analyzeBtn.innerHTML = `<span class="btn-text">${text}</span><span class="btn-icon">⏳</span>`;
@@ -407,35 +440,41 @@ function setLoadingState(isLoading, text = 'Analyzing...') {
 }
 
 function setResultsMode(mode) {
-    const sizeCard = document.getElementById('sizeResults').closest('.result-card');
-    const duplicationCard = document.getElementById('duplicationResults').closest('.result-card');
+    const sizeResultNode = document.getElementById('sizeResults');
+    const duplicationResultNode = document.getElementById('duplicationResults');
+    const sizeCard = sizeResultNode ? sizeResultNode.closest('.result-card') : null;
+    const duplicationCard = duplicationResultNode ? duplicationResultNode.closest('.result-card') : null;
     const resultCardGroups = document.querySelectorAll('.result-card-group');
 
     if (mode === 'lighthouse') {
         // Lighthouse only (old behavior, kept for compatibility)
-        sizeCard.classList.add('hidden');
-        duplicationCard.classList.add('hidden');
-        lighthouseScoresCard.classList.remove('hidden');
-        coreVitalsCard.classList.remove('hidden');
+        if (sizeCard) sizeCard.classList.add('hidden');
+        if (duplicationCard) duplicationCard.classList.add('hidden');
+        if (lighthouseScoresCard) lighthouseScoresCard.classList.remove('hidden');
+        if (coreVitalsCard) coreVitalsCard.classList.remove('hidden');
         resultCardGroups.forEach(group => group.classList.remove('hidden'));
     } else if (mode === 'combined') {
         // Show all cards for URL analysis
-        sizeCard.classList.remove('hidden');
-        duplicationCard.classList.remove('hidden');
-        lighthouseScoresCard.classList.remove('hidden');
-        coreVitalsCard.classList.remove('hidden');
+        if (sizeCard) sizeCard.classList.remove('hidden');
+        if (duplicationCard) duplicationCard.classList.remove('hidden');
+        if (lighthouseScoresCard) lighthouseScoresCard.classList.remove('hidden');
+        if (coreVitalsCard) coreVitalsCard.classList.remove('hidden');
         resultCardGroups.forEach(group => group.classList.remove('hidden'));
     } else {
         // Static analysis only (paste/upload)
-        sizeCard.classList.remove('hidden');
-        duplicationCard.classList.remove('hidden');
-        lighthouseScoresCard.classList.add('hidden');
-        coreVitalsCard.classList.add('hidden');
+        if (sizeCard) sizeCard.classList.remove('hidden');
+        if (duplicationCard) duplicationCard.classList.remove('hidden');
+        if (lighthouseScoresCard) lighthouseScoresCard.classList.add('hidden');
+        if (coreVitalsCard) coreVitalsCard.classList.add('hidden');
         resultCardGroups.forEach(group => group.classList.add('hidden'));
     }
 }
 
 function showResultsSection() {
+    if (!resultsSection) {
+        return;
+    }
+
     resultsSection.classList.remove('hidden');
     setTimeout(() => {
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -451,6 +490,10 @@ function getUserFriendlyError(error) {
 
 function renderErrorCard(message) {
     const container = document.getElementById('errorResults');
+    if (!container) {
+        return;
+    }
+
     const safeMessage = escapeHtml(message || 'Audit failed. Please try again.');
 
     container.innerHTML = `
@@ -458,11 +501,13 @@ function renderErrorCard(message) {
         <button class="retry-btn" id="retryAuditBtn" type="button">Retry audit</button>
     `;
 
-    errorCard.classList.remove('hidden');
+    if (errorCard) {
+        errorCard.classList.remove('hidden');
+    }
     const retryBtn = document.getElementById('retryAuditBtn');
     if (retryBtn) {
         retryBtn.addEventListener('click', () => {
-            if (lastAuditUrl) {
+            if (lastAuditUrl && urlInput) {
                 urlInput.value = lastAuditUrl;
             }
             runAnalysis();
@@ -550,6 +595,10 @@ function renderResults({ sizeResults, duplicationResults, performanceResults, sc
 
 function renderLighthouseScores(lighthouseResults) {
     const container = document.getElementById('lighthouseScoresResults');
+    if (!container) {
+        return;
+    }
+
     if (!lighthouseResults.categoryScores || lighthouseResults.categoryScores.length === 0) {
         container.innerHTML = '<p style="color: var(--text-secondary);">No Lighthouse scores available.</p>';
         return;
@@ -576,6 +625,10 @@ function renderLighthouseScores(lighthouseResults) {
 
 function renderCoreVitals(lighthouseResults) {
     const container = document.getElementById('coreVitalsResults');
+    if (!container) {
+        return;
+    }
+
     if (!lighthouseResults.coreVitals || lighthouseResults.coreVitals.length === 0) {
         container.innerHTML = '<p style="color: var(--text-secondary);">Core Web Vitals data is unavailable.</p>';
         return;
@@ -599,8 +652,15 @@ function renderCoreVitals(lighthouseResults) {
 
 function renderOverallScore(scoreResults) {
     const scoreElement = document.getElementById('overallScore');
+    if (!scoreElement) {
+        return;
+    }
+
     const scoreCircle = scoreElement.querySelector('.score-circle');
     const scoreValue = scoreElement.querySelector('.score-value');
+    if (!scoreCircle || !scoreValue) {
+        return;
+    }
 
     const score = typeof scoreResults.score === 'number' ? scoreResults.score : 0;
     scoreValue.textContent = score;
@@ -616,7 +676,7 @@ function renderOverallScore(scoreResults) {
     }
 }
 
-function getScoreBreakdownText(scoreResults) {
+function formatCombinedScoreBreakdown(scoreResults) {
     if (!scoreResults || scoreResults.mode !== 'combined' || !scoreResults.sourceScores) {
         return '';
     }
@@ -636,6 +696,10 @@ function getScoreBreakdownText(scoreResults) {
         return `${lighthouseScore} (Lighthouse Score) = ${scoreResults.score}`;
     }
     return '';
+}
+
+function getScoreBreakdownText(scoreResults) {
+    return formatCombinedScoreBreakdown(scoreResults);
 }
 
 function renderSizeResults(sizeResults) {
@@ -772,25 +836,11 @@ function renderRecommendations(performanceResults, scoreResults) {
             html += `<p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${escapeHtml(msg)}</p>`;
         });
 
-        if (scoreResults.mode === 'combined' && scoreResults.sourceScores) {
-            const staticScore = scoreResults.sourceScores.staticScore;
-            const lighthouseScore = scoreResults.sourceScores.lighthouseScore;
-            const staticWeight = scoreResults.sourceScores.staticWeight;
-            const lighthouseWeight = scoreResults.sourceScores.lighthouseWeight;
-
-            if (typeof staticScore === 'number' && typeof lighthouseScore === 'number' && staticWeight > 0 && lighthouseWeight > 0) {
-                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
-                    *Score breakdown: ${staticScore} (Static Score) × ${Math.round(staticWeight * 100)}% + ${lighthouseScore} (Lighthouse Score) × ${Math.round(lighthouseWeight * 100)}% = ${scoreResults.score}
-                </p>`;
-            } else if (typeof staticScore === 'number') {
-                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
-                    *Score breakdown: ${staticScore} (Static Score) = ${scoreResults.score}
-                </p>`;
-            } else if (typeof lighthouseScore === 'number') {
-                html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
-                    *Score breakdown: ${lighthouseScore} (Lighthouse Score) = ${scoreResults.score}
-                </p>`;
-            }
+        const breakdownText = formatCombinedScoreBreakdown(scoreResults);
+        if (breakdownText) {
+            html += `<p style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">
+                *Score breakdown: ${escapeHtml(breakdownText)}
+            </p>`;
         }
 
         html += '</div>';
