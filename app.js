@@ -831,7 +831,7 @@ function renderRecommendations(performanceResults, scoreResults) {
 
     // Add score summary
     if (scoreResults && scoreResults.summary) {
-        html += '<div style="margin-bottom: 1.5rem;">';
+        html += '<div>';
         scoreResults.summary.forEach(msg => {
             html += `<p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${escapeHtml(msg)}</p>`;
         });
